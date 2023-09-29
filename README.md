@@ -6,19 +6,12 @@ Program Features:
 - A random server name is queried with a fixed prefix and it is checked that the IP address 1.1.1.1 is resolved. Server name create on this rule: <timestamp with miliseconds>.<hostname prefix>
 - Work in an infinite loop.
 
-## Install
+### Install
 **requred go 1.21.1**
-
-### Main
 ```bash
-go get github.com/nir0k/HighFrequencyDNSChecker
-go build github.com/nir0k/HighFrequencyDNSChecker/main .
-```
-
-### Dev
-```bash
-go get github.com/nir0k/HighFrequencyDNSChecker
-go build github.com/nir0k/HighFrequencyDNSChecker/dev .
+git clone https://github.com/nir0k/HighFrequencyDNSChecker.git
+cd frequency-dns-checker/main
+go build .
 ```
 
 ### Prepare
