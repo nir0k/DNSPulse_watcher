@@ -3,8 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"hash"
+	"io"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -17,94 +21,255 @@ import (
 )
 
 
+type prometheus struct {
+    url string
+    auth  bool
+    username string
+    password string
+    metric string
+}
+
+
+type dns_param struct {
+    protocol string
+    timeout  int
+    polling_rate int
+    host_postfix string
+    dns_servers_path string
+    dns_servers_file_md5hash string
+}
+
+
+type log_conf struct {
+    log_path string
+    log_level string
+}
+
+
+type config struct {
+    conf_path string
+    conf_md5hash string
+}
+
+
 var (
-    Resolvers_File_Path string
-    HostPrefix string
-    TimeDelay int
-    Dns_timeout int
-    Dns_protocol string
-    Prometheus_url string
-    Prometheus_auth bool
-    Prometheus_username string
-    Prometheus_password string
-    Prometheus_metric_name string
-    Debug bool
-    Log_file string
-    Log_level string
+    Prometheus prometheus
+    Dns_param dns_param
+    Log_conf log_conf   
+    Config config
+    DnsList []string
 )
 
 
 func init() {
-    err := godotenv.Load()
-    if err != nil {
-        log.Fatal("Error loading .env file", err)
+    Config.conf_path = ".env"
+    state := readConfig()
+    if !state {
+        fmt.Println("Error load configuration parametrs. check config in .env files")
+        log.Fatal("Error load configuration parametrs. check config in .env files")
     }
-    Log_file = os.Getenv("LOG_FILE")
-    Log_level = os.Getenv("LOG_LEVEL")
-    file, err := os.OpenFile(Log_file, os.O_APPEND | os.O_CREATE | os.O_RDWR, 0666)
+}
+
+
+func isValidDNSName(name string) bool {
+    dnsNameRegex := regexp.MustCompile(`^(?i:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*(?i:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)$`)
+    return dnsNameRegex.MatchString(name)
+}
+
+
+func isValidURL(inputURL string) bool {
+    _, err := url.ParseRequestURI(inputURL)
+    return err == nil
+}
+
+
+func isAlphaNumericWithDashOrUnderscore(input string) bool {
+    validRegex := regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+    return validRegex.MatchString(input)
+}
+
+
+func compareFileHash(path string, curent_hash string) (bool, error) {
+    
+    new_hash, err := calculateHash(path, md5.New)
     if err != nil {
-        fmt.Println("Error opening file '", Log_file,"': %v", err)
+        log.Error("Error: calculating MD5 hash to file '", path, "'. error:", err)
+        return false, err
+    }
+    if curent_hash == new_hash {
+        return true, nil
+    }
+    return false, nil
+}
+
+
+func checkConfig() {
+    fmt.Println("[] - Exec check conf. time", time.Now().Format("2006/01/02 03:04:05.000"))
+    conf_state, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
+    if !conf_state {
+        readConfig()
     }
 
+    resolvers_state, _ := compareFileHash(Dns_param.dns_servers_path, Dns_param.dns_servers_file_md5hash)
+    if !resolvers_state {
+        readConfig()
+    }
+
+    time.Sleep(time.Duration(30 * time.Second))
+    fmt.Println("[] - after sleep", time.Now().Format("2006/01/02 03:04:05.000"))
+
+}
+
+
+func readConfig() bool {
+    var (
+        new_log_conf log_conf
+        new_dns_param dns_param
+        new_prometheus prometheus
+    )
+
+    // err := godotenv.Load()
+    err := godotenv.Overload()
+    if err != nil {
+        fmt.Println("Error loading .env file", err)
+        log.Error("Error loading .env file", err)
+        return false
+    }
+
+    new_log_conf.log_path = os.Getenv("LOG_FILE")
+    validPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
+    if !validPathRegex.MatchString(new_log_conf.log_path) {
+        fmt.Println("Error create/open log file ", new_log_conf.log_path)
+        log.Error("Error create/open log file '", new_log_conf.log_path, "'.")
+        return false
+    }
+    
+    file, err := os.OpenFile(new_log_conf.log_path, os.O_APPEND | os.O_CREATE | os.O_RDWR, 0666)
+    if err != nil {
+        fmt.Println("Error opening file '", Log_conf.log_path,"': %v", err)
+        return false
+    }
     log.SetFormatter(&log.JSONFormatter{})
     log.SetOutput(file)
-    switch Log_level{
+    new_log_conf.log_level = os.Getenv("LOG_LEVEL")
+    switch new_log_conf.log_level {
         case "debug": log.SetLevel(log.DebugLevel)
         case "info": log.SetLevel(log.InfoLevel)
         case "warning": log.SetLevel(log.WarnLevel)
         case "error": log.SetLevel(log.ErrorLevel)
         case "fatal": log.SetLevel(log.FatalLevel)
-        default: log.SetLevel(log.WarnLevel) 
+        default: {
+            log.Error("Error min log severity '", new_log_conf.log_level, "'.")
+            return false
+        } 
     }
-    Resolvers_File_Path = os.Getenv("RESOLVERPATH")
-    HostPrefix = os.Getenv("HOSTPREFIX")
-    if len(HostPrefix) == 0 {
-        log.Fatal("Error: Variable HOSTPREFIX is required in .env file. Please add this variable with value")
+
+    new_dns_param.dns_servers_path = os.Getenv("DNS_RESOLVERPATH")
+    validRPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
+    if !validRPathRegex.MatchString(new_dns_param.dns_servers_path) {
+        fmt.Println("Error: Variable DNS_RESOLVERPATH is wrong check .env file. Path:'", new_dns_param.dns_servers_path, "'.")
+        log.Error("Error: Variable DNS_RESOLVERPATH is wrong check .env file. Path:'", new_dns_param.dns_servers_path, "'.")
+        return false
     }
-    TimeDelay, err = strconv.Atoi(os.Getenv("TIMEDELAY"))
+
+    new_dns_param.host_postfix = os.Getenv("DNS_HOSTPOSTFIX")    
+    if !isValidDNSName(new_dns_param.host_postfix) {
+        log.Error("Error: Variable HOSTPOSTFIX is wrong in .env file.")
+        return false
+    }
+    new_dns_param.polling_rate, err = strconv.Atoi(os.Getenv("DNS_POLLING_RATE"))
     if err != nil {
-        log.Warn("Warning: Variable TIMEDELAY is empty or wrong in .env file. The value equals to 150 will be used. error:", err)
+        log.Error("Warning: Variable DNS_POLLING_RATE is empty or wrong in .env file. error:", err)
+        return false
     }
-    Prometheus_url = os.Getenv("PROM_URL")
-    if len(Prometheus_url) == 0 {
-        log.Fatal("Error: Variable PROM_URL is required in .env file. Please add this variable with value")
-    }
-    Prometheus_metric_name = os.Getenv("PROM_METRIC")
-    if len(Prometheus_metric_name) == 0 {
-        log.Warn("Warning: Variable PROM_AUTH is empty or wrong in .env file. The value equals to 'dns_resolve' will be used.")
-    }
-    Prometheus_auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
+
+    new_dns_param.timeout, err = strconv.Atoi(os.Getenv("DNS_TIMEOUT"))
     if err != nil {
-        log.Warn("Warning: Variable PROM_AUTH is empty or wrong in .env file. The value equals to 'false' will be used. error:", err)
+        log.Error("Warning: Variable DNS_TIMEOUT is empty or wrong in .env file. error:", err)
+        return false
     }
-    if Prometheus_auth {
-        Prometheus_username = os.Getenv("PROM_USER")
-        if len(Prometheus_username) == 0 {
-            log.Fatal("Error: Variable PROM_USER is required in .env file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
-        }
-        Prometheus_password = os.Getenv("PROM_PASS")
-        if len(Prometheus_password) == 0 {
-            log.Fatal("Error: Variable PROM_PASS is required in .env file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
-        }
-    }
-    Dns_timeout, err = strconv.Atoi(os.Getenv("DNSTIMEOUT"))
-    if err != nil {
-        log.Warn("Warning: Variable DNSTIMEOUT is empty or wrong in .env file. The value equals to 1 will be used. error:", err)
-    }
-    Dns_protocol = os.Getenv("DNSPROTOCOL")
+
+    new_dns_param.protocol = os.Getenv("DNS_PROTOCOL")
     regexpPattern, err := regexp.Compile("^(udp[4,6]|tcp[4,6]|tcp|udp)$")
-	if err != nil {
-        log.Warn("Error compiling regex. Check variable DNSPROTOCOL in .env file. The value equals to udp4 will be used. err:", err)
-        Dns_protocol = "udp4"
-    } else if !regexpPattern.MatchString(Dns_protocol) {
-        log.Warn("Warning: Variable DNSPROTOCOL is empty or wrong in .env file. The value equals to udp4 will be used. err:", err)
-		Dns_protocol = "udp4"
-    } 
+    if err != nil {
+        log.Error("Error compiling regex. err:", err)
+        return false
+    } else if !regexpPattern.MatchString(new_dns_param.protocol) {
+        log.Error("Error: Variable DNS_PROTOCOL is empty or wrong in .env file.")
+        return false
+    }
+
+    new_prometheus.url = os.Getenv("PROM_URL")
+    if !isValidURL(new_prometheus.url) {
+        log.Error("Error: Variable PROM_URL is required in .env file. Please add this variable with value")
+        return false
+    }
+
+    new_prometheus.metric = os.Getenv("PROM_METRIC")
+    if !isAlphaNumericWithDashOrUnderscore(new_prometheus.metric) {
+        log.Error("Error: Variable PROM_METRIC is empty or wrong in .env file.")
+        return false
+    }
+
+    new_prometheus.auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
+    if err != nil {
+        log.Error("Error: Variable PROM_AUTH is empty or wrong in .env file. error:", err)
+        return false
+    }
+
+    if new_prometheus.auth {
+        new_prometheus.username = os.Getenv("PROM_USER")
+        if len(new_prometheus.username) == 0 {
+            log.Error("Error: Variable PROM_USER is required in .env file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            return false
+        }
+        new_prometheus.password = os.Getenv("PROM_PASS")
+        if len(new_prometheus.password) == 0 {
+            log.Error("Error: Variable PROM_PASS is required in .env file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            return false
+        }
+    }
+
+    Config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
+    if err != nil {
+        log.Error("Error: calculate hash to file '", Config.conf_path, "'")
+        return false
+    }
+
+    Dns_param.dns_servers_file_md5hash, err = calculateHash(Config.conf_path, md5.New)
+    if err != nil {
+        log.Error("Error: calculate hash to file '", Config.conf_path, "'")
+        return false
+    }
+
+    Log_conf = new_log_conf
+    Dns_param = new_dns_param
+    Prometheus = new_prometheus
+    
+    return true
 }
 
 
-func readLines() ([]string, error) {
-    file, err := os.Open(Resolvers_File_Path)
+func calculateHash(filePath string, hashFunc func() hash.Hash) (string, error) {
+    file, err := os.Open(filePath)
+    if err != nil {
+        return "", err
+    }
+    defer file.Close()
+
+    hash := hashFunc()
+    _, err = io.Copy(hash, file)
+    if err != nil {
+        return "", err
+    }
+
+    hashSum := hash.Sum(nil)
+    return fmt.Sprintf("%x", hashSum), nil
+}
+
+
+func readDNSServers() ([]string, error) {
+    file, err := os.Open(Dns_param.dns_servers_path)
     if err != nil {
         return nil, err
     }
@@ -119,20 +284,20 @@ func readLines() ([]string, error) {
 
 
 func basicAuth() string {
-    auth := Prometheus_username + ":" + Prometheus_password
+    auth := Prometheus.username + ":" + Prometheus.password
     return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 
 func sendVM(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) bool {
-    client := promwrite.NewClient(Prometheus_url)
+    client := promwrite.NewClient(Prometheus.url)
     req := &promwrite.WriteRequest{
         TimeSeries: []promwrite.TimeSeries{
             {
                 Labels: []promwrite.Label{
                     {
                         Name:  "__name__",
-                        Value: Prometheus_metric_name,
+                        Value: Prometheus.metric,
                     },
                     {
                         Name: "server",
@@ -169,21 +334,21 @@ func sendVM(server string, tc bool, Rcode int, protocol string, tm time.Time, va
             }
         }
         if err_count < 3 {
-            log.Warn("Remote write to VM succesfull. Retry ", err_count, " of 3. URL:", Prometheus_url ,", Username:", Prometheus_username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
+            log.Warn("Remote write to VM succesfull. Retry ", err_count, " of 3. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
             return true
         }else {
-            log.Error("Remote write to VM false. URL:", Prometheus_url ,", Username:", Prometheus_username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
+            log.Error("Remote write to VM false. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
             return false
         }
     }
-    log.Debug("Remote write to VM succesfull. URL:", Prometheus_url ,", Username:", Prometheus_username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
     return true
 }
 
 
 func dnsResolve(target string, server string, server_label string) {
-    c := dns.Client{Timeout: time.Duration(Dns_timeout) * time.Second}
-    c.Net = Dns_protocol
+    c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
+    c.Net = Dns_param.protocol
     m := dns.Msg{}
     host := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + target
     request_time := time.Now()
@@ -207,29 +372,38 @@ func dnsResolve(target string, server string, server_label string) {
     }
 }
 
+
 func main() {
     log.Info("Frequency DNS cheker start.")
-    log.Info("Prometheus info: url:", Prometheus_url , ", auth:", Prometheus_auth, ", username:", Prometheus_username, ", metric_name:", Prometheus_metric_name)
-    resolvers, err := readLines()
+    log.Info("Prometheus info: url:", Prometheus.url , ", auth:", Prometheus.auth, ", username:", Prometheus.username, ", metric_name:", Prometheus.metric)
+    DnsList, err := readDNSServers()
     if err != nil {
-        log.Fatal("Error read file ", Resolvers_File_Path,"| error: ", err)
+        log.Fatal("Error read file ", Dns_param.dns_servers_path,"| error: ", err)
     }
-    if len(resolvers) == 0 {
-        log.Fatal("Error: File ", Resolvers_File_Path, " is empty")
+    if len(DnsList) == 0 {
+        log.Fatal("Error: File ", Dns_param.dns_servers_path, " is empty")
     }
-    log.Info("DNS info: DNS server count:", len(resolvers) , ", hostname_prefix:", HostPrefix, ", answer_timeout:", Dns_timeout, ", polling_frequency:", TimeDelay)
+    log.Info("DNS info: DNS server count:", len(DnsList) , ", hostname_postfix:", Dns_param.host_postfix, ", answer_timeout:", Dns_param.timeout, ", polling_rate:", Dns_param.polling_rate)
     
     currentTime := time.Now()
 	var startTime = currentTime.Truncate(time.Second).Add(time.Second)
 	var duration = startTime.Sub(currentTime)
 	time.Sleep(duration)
 
+    fmt.Println("First exec check conf. time", time.Now().Format("2006/01/02 03:04:05.000"))
+    ConfigCheckTicker := time.NewTicker(30 * time.Second)
+
     i := 0
     for {
         i = 0
-        for _, r := range resolvers {
+        for _, r := range DnsList {
             i++
-            go dnsResolve(HostPrefix, r, fmt.Sprintf("%s%d", r, i))
+            go dnsResolve(Dns_param.host_postfix, r, fmt.Sprintf("%s%d", r, i))
+        }
+        time.Sleep(time.Duration(Dns_param.polling_rate) * time.Millisecond)
+        select {
+        case <-ConfigCheckTicker.C:
+            go checkConfig()
         }
     }
 }
