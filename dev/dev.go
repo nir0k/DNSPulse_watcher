@@ -6,13 +6,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/castai/promwrite"
 	"github.com/joho/godotenv"
 	"github.com/miekg/dns"
-    log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -21,6 +22,7 @@ var (
     HostPrefix string
     TimeDelay int
     Dns_timeout int
+    Dns_protocol string
     Prometheus_url string
     Prometheus_auth bool
     Prometheus_username string
@@ -89,6 +91,15 @@ func init() {
     if err != nil {
         log.Warn("Warning: Variable DNSTIMEOUT is empty or wrong in .env file. The value equals to 1 will be used. error:", err)
     }
+    Dns_protocol = os.Getenv("DNSPROTOCOL")
+    regexpPattern, err := regexp.Compile("^(udp[4,6]|tcp[4,6]|tcp|udp)$")
+	if err != nil {
+        log.Warn("Error compiling regex. Check variable DNSPROTOCOL in .env file. The value equals to udp4 will be used. err:", err)
+        Dns_protocol = "udp4"
+    } else if !regexpPattern.MatchString(Dns_protocol) {
+        log.Warn("Warning: Variable DNSPROTOCOL is empty or wrong in .env file. The value equals to udp4 will be used. err:", err)
+		Dns_protocol = "udp4"
+    } 
 }
 
 
@@ -113,7 +124,7 @@ func basicAuth() string {
 }
 
 
-func sendVM(server string, tc bool, r_code int, tm time.Time, value float64) bool {
+func sendVM(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) bool {
     client := promwrite.NewClient(Prometheus_url)
     req := &promwrite.WriteRequest{
         TimeSeries: []promwrite.TimeSeries{
@@ -128,16 +139,16 @@ func sendVM(server string, tc bool, r_code int, tm time.Time, value float64) boo
                         Value: server,
                     },
                     {
-                        Name: "type",
-                        Value: "A",
-                    },
-                    {
                         Name: "Truncated",
                         Value: strconv.FormatBool(tc),
                     },
                     {
-                        Name: "r_code",
-                        Value: strconv.Itoa(r_code),
+                        Name: "Rcode",
+                        Value: strconv.Itoa(Rcode),
+                    },
+                    {
+                        Name: "Protocol",
+                        Value: protocol,
                     },
                 },
                 Sample: promwrite.Sample{
@@ -172,25 +183,26 @@ func sendVM(server string, tc bool, r_code int, tm time.Time, value float64) boo
 
 func dnsResolve(target string, server string, server_label string) {
     c := dns.Client{Timeout: time.Duration(Dns_timeout) * time.Second}
+    c.Net = Dns_protocol
     m := dns.Msg{}
     host := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + target
     request_time := time.Now()
     m.SetQuestion(host+".", dns.TypeA)
     r, t, err := c.Exchange(&m, server+":53")
     if err != nil {
-        log.Debug("Server:", server_label, ",TC: false", ", host:", host, ", r_code: 3 , r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        sendVM(server_label, false, 3, request_time, float64(t))
+        log.Debug("Server:", server_label, ",TC: false", ", host:", host, "Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
+        sendVM(server_label, false, 3842, c.Net, request_time, float64(t))
     } else {
         if len(r.Answer) == 0 {
-            log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", r_code: 2, r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            sendVM(server_label, r.MsgHdr.Truncated, 2, request_time, float64(t))
+            log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
+            sendVM(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
         } else {
-            r_code := 0
-            if r.Answer[0].(*dns.A).A.To4().String() == "1.1.1.1" {
-                r_code = 1
+            rcode := r.MsgHdr.Rcode
+            if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
+                rcode = 3841
             }
-            log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", r_code:", r_code,", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            sendVM(server_label, r.MsgHdr.Truncated, r_code, request_time, float64(t))
+            log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
+            sendVM(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
         }
     }
 }

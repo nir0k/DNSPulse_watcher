@@ -22,3 +22,8 @@ Complited example we found in the file .env-example in the project
 ```bash
 ./frequency-dns-checker
 ```
+
+
+### Custom Rcode:
+- 3841 - Resolved IP-address not equals 1.1.1.1
+- 3842 - DNS Server not answer
