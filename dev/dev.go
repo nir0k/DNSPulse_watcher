@@ -218,6 +218,12 @@ func main() {
         log.Fatal("Error: File ", Resolvers_File_Path, " is empty")
     }
     log.Info("DNS info: DNS server count:", len(resolvers) , ", hostname_prefix:", HostPrefix, ", answer_timeout:", Dns_timeout, ", polling_frequency:", TimeDelay)
+    
+    currentTime := time.Now()
+	var startTime = currentTime.Truncate(time.Second).Add(time.Second)
+	var duration = startTime.Sub(currentTime)
+	time.Sleep(duration)
+
     i := 0
     for {
         i = 0
