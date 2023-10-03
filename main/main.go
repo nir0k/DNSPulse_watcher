@@ -347,6 +347,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
+    log.Debug("TimeSeries:", items)
     for i := 0; i <= 3; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
         if err == nil {
@@ -370,7 +371,7 @@ func dnsResolve(target string, server string) {
     m.SetQuestion(host+".", dns.TypeA)
     r, t, err := c.Exchange(&m, server+":53")
     if err != nil {
-        log.Debug("Server:", server, ",TC: false", ", host:", host, "Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
+        log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
         bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t))
     } else {
         if len(r.Answer) == 0 {
