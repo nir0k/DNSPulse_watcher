@@ -71,6 +71,11 @@ func init() {
         fmt.Println("Error load configuration parametrs. check config in .env files")
         log.Fatal("Error load configuration parametrs. check config in .env files")
     }
+    state = readDNSServers()
+    if !state {
+        fmt.Println("Error load dns server list from file '", Dns_param.dns_servers_path, "'. check config in .env files")
+        log.Fatal("Error load dns server list from file '", Dns_param.dns_servers_path, "'. check config in .env files")
+    }
 }
 
 
@@ -112,12 +117,17 @@ func checkConfig() {
         case <-ConfigCheckTicker.C:
             conf_state, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
             if !conf_state {
+                log.Info("Config has been changed")
                 readConfig()
             }
 
             resolvers_state, _ := compareFileHash(Dns_param.dns_servers_path, Dns_param.dns_servers_file_md5hash)
             if !resolvers_state {
-                readConfig()
+                log.Info("List of DNS service has been changed")
+                state := readDNSServers()
+                if !state {
+                    log.Warn("New List of DNS service is wrong. Use old list of DNS service")
+                }
             }
     }
 }
@@ -283,18 +293,25 @@ func calculateHash(filePath string, hashFunc func() hash.Hash) (string, error) {
 }
 
 
-func readDNSServers() ([]string, error) {
+func readDNSServers() bool {
     file, err := os.Open(Dns_param.dns_servers_path)
     if err != nil {
-        return nil, err
+        log.Error("Error read file ", Dns_param.dns_servers_path,"| error: ", err)
+        return false
     }
     defer file.Close()
-    var lines []string
+    var dnslist []string
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
-        lines = append(lines, scanner.Text())
+        dnslist = append(dnslist, scanner.Text())
     }
-    return lines, scanner.Err()
+    if len(dnslist) == 0 {
+        log.Error("Error: File ", Dns_param.dns_servers_path, " is empty")
+        return false
+    }
+    DnsList = dnslist
+    log.Info("DNS info: DNS server count:", len(DnsList))
+    return true
 }
 
 
@@ -392,13 +409,6 @@ func dnsResolve(target string, server string) {
 func main() {
     log.Info("Frequency DNS cheker start.")
     log.Info("Prometheus info: url:", Prometheus.url , ", auth:", Prometheus.auth, ", username:", Prometheus.username, ", metric_name:", Prometheus.metric)
-    DnsList, err := readDNSServers()
-    if err != nil {
-        log.Fatal("Error read file ", Dns_param.dns_servers_path,"| error: ", err)
-    }
-    if len(DnsList) == 0 {
-        log.Fatal("Error: File ", Dns_param.dns_servers_path, " is empty")
-    }
     log.Info("DNS info: DNS server count:", len(DnsList) , ", hostname_postfix:", Dns_param.host_postfix, ", answer_timeout:", Dns_param.timeout, ", polling_rate:", Dns_param.polling_rate)
     
     currentTime := time.Now()
