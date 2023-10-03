@@ -49,6 +49,7 @@ type log_conf struct {
 type config struct {
     conf_path string
     conf_md5hash string
+    check_interval int
 }
 
 
@@ -104,20 +105,19 @@ func compareFileHash(path string, curent_hash string) (bool, error) {
 
 
 func checkConfig() {
-    fmt.Println("[] - Exec check conf. time", time.Now().Format("2006/01/02 03:04:05.000"))
-    conf_state, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
-    if !conf_state {
-        readConfig()
+    ConfigCheckTicker := time.NewTicker(time.Duration(Config.check_interval) * time.Minute)
+    select {
+        case <-ConfigCheckTicker.C:
+            conf_state, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
+            if !conf_state {
+                readConfig()
+            }
+
+            resolvers_state, _ := compareFileHash(Dns_param.dns_servers_path, Dns_param.dns_servers_file_md5hash)
+            if !resolvers_state {
+                readConfig()
+            }
     }
-
-    resolvers_state, _ := compareFileHash(Dns_param.dns_servers_path, Dns_param.dns_servers_file_md5hash)
-    if !resolvers_state {
-        readConfig()
-    }
-
-    time.Sleep(time.Duration(30 * time.Second))
-    fmt.Println("[] - after sleep", time.Now().Format("2006/01/02 03:04:05.000"))
-
 }
 
 
@@ -126,9 +126,9 @@ func readConfig() bool {
         new_log_conf log_conf
         new_dns_param dns_param
         new_prometheus prometheus
+        new_check_interval int
     )
 
-    // err := godotenv.Load()
     err := godotenv.Overload()
     if err != nil {
         fmt.Println("Error loading .env file", err)
@@ -230,6 +230,12 @@ func readConfig() bool {
         }
     }
 
+    new_check_interval, err = strconv.Atoi(os.Getenv("CONF_CHECK_INTERVAL"))
+    if err != nil {
+        log.Error("Warning: Variable CONF_CHECK_INTERVAL is empty or wrong in .env file. error:", err)
+        return false
+    }
+
     Config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
     if err != nil {
         log.Error("Error: calculate hash to file '", Config.conf_path, "'")
@@ -245,6 +251,7 @@ func readConfig() bool {
     Log_conf = new_log_conf
     Dns_param = new_dns_param
     Prometheus = new_prometheus
+    Config.check_interval = new_check_interval
     
     return true
 }
@@ -389,18 +396,13 @@ func main() {
 	var startTime = currentTime.Truncate(time.Second).Add(time.Second)
 	var duration = startTime.Sub(currentTime)
 	time.Sleep(duration)
-
-    fmt.Println("First exec check conf. time", time.Now().Format("2006/01/02 03:04:05.000"))
-    ConfigCheckTicker := time.NewTicker(30 * time.Second)
+    
+    go checkConfig()
 
     for {
         for _, r := range DnsList {
             go dnsResolve(Dns_param.host_postfix, r)
         }
         time.Sleep(time.Duration(Dns_param.polling_rate) * time.Millisecond)
-        select {
-        case <-ConfigCheckTicker.C:
-            go checkConfig()
-        }
     }
 }
