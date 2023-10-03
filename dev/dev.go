@@ -50,6 +50,7 @@ type config struct {
     conf_path string
     conf_md5hash string
     check_interval int
+    buffer_size int
 }
 
 
@@ -59,6 +60,7 @@ var (
     Log_conf log_conf   
     Config config
     DnsList []string
+    Buffer []promwrite.TimeSeries
 )
 
 
@@ -236,6 +238,12 @@ func readConfig() bool {
         return false
     }
 
+    Config.buffer_size, err = strconv.Atoi(os.Getenv("BUFFER_SIZE"))
+    if err != nil {
+        log.Error("Warning: Variable BUFFER_SIZE is empty or wrong in .env file. error:", err)
+        return false
+    }
+
     Config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
     if err != nil {
         log.Error("Error: calculate hash to file '", Config.conf_path, "'")
@@ -296,60 +304,60 @@ func basicAuth() string {
 }
 
 
-func sendVM(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) bool {
-    client := promwrite.NewClient(Prometheus.url)
-    req := &promwrite.WriteRequest{
-        TimeSeries: []promwrite.TimeSeries{
+func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) {
+    if len(Buffer) >= Config.buffer_size {
+        go sendVM(Buffer)
+        Buffer = []promwrite.TimeSeries{}
+        return
+    }
+    instance := promwrite.TimeSeries{
+        Labels: []promwrite.Label{
             {
-                Labels: []promwrite.Label{
-                    {
-                        Name:  "__name__",
-                        Value: Prometheus.metric,
-                    },
-                    {
-                        Name: "server",
-                        Value: server,
-                    },
-                    {
-                        Name: "Truncated",
-                        Value: strconv.FormatBool(tc),
-                    },
-                    {
-                        Name: "Rcode",
-                        Value: strconv.Itoa(Rcode),
-                    },
-                    {
-                        Name: "Protocol",
-                        Value: protocol,
-                    },
-                },
-                Sample: promwrite.Sample{
-                    Time:  tm,
-                    Value: value,
-                },
+                Name:  "__name__",
+                Value: Prometheus.metric,
+            },
+            {
+                Name: "server",
+                Value: server,
+            },
+            {
+                Name: "Truncated",
+                Value: strconv.FormatBool(tc),
+            },
+            {
+                Name: "Rcode",
+                Value: strconv.Itoa(Rcode),
+            },
+            {
+                Name: "Protocol",
+                Value: protocol,
             },
         },
+        Sample: promwrite.Sample{
+            Time:  tm,
+            Value: value,
+        },
     }
-    _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
-    if err != nil {
-        err_count := 0
-        for i := 1; i <= 3; i++ {
-            err_count = i
-            _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
-            if err == nil {
-                break
-            }
-        }
-        if err_count < 3 {
-            log.Warn("Remote write to VM succesfull. Retry ", err_count, " of 3. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
+    Buffer = append(Buffer, instance)
+}
+
+
+func sendVM(items []promwrite.TimeSeries) bool {
+    client := promwrite.NewClient(Prometheus.url)
+    req := &promwrite.WriteRequest{
+        TimeSeries: items,
+    }
+    for i := 0; i <= 3; i++ {
+        _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
+        if err == nil {
+            log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
-        }else {
-            log.Error("Remote write to VM false. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
-            return false
+        }
+        if i > 0 {
+            log.Warn("Remote write to VM succesfull. Retry ", i+1, " of 3. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
         }
     }
-    log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
-    return true
+    return false
 }
 
 
@@ -363,18 +371,18 @@ func dnsResolve(target string, server string, server_label string) {
     r, t, err := c.Exchange(&m, server+":53")
     if err != nil {
         log.Debug("Server:", server_label, ",TC: false", ", host:", host, "Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        sendVM(server_label, false, 3842, c.Net, request_time, float64(t))
+        bufferTimeSeries(server_label, false, 3842, c.Net, request_time, float64(t))
     } else {
         if len(r.Answer) == 0 {
             log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            sendVM(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
+            bufferTimeSeries(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
         } else {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
             }
             log.Debug("Server:", server_label, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            sendVM(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
+            bufferTimeSeries(server_label, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t))
         }
     }
 }
