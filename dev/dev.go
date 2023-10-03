@@ -415,9 +415,8 @@ func main() {
 	var startTime = currentTime.Truncate(time.Second).Add(time.Second)
 	var duration = startTime.Sub(currentTime)
 	time.Sleep(duration)
-
+    
     go checkConfig()
-
     i := 0
     for {
         i = 0
