@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/castai/promwrite"
@@ -21,7 +22,7 @@ import (
 )
 
 
-type prometheus struct {
+type prom struct {
     url string
     auth  bool
     username string
@@ -55,12 +56,13 @@ type config struct {
 
 
 var (
-    Prometheus prometheus
+    Prometheus prom
     Dns_param dns_param
     Log_conf log_conf   
     Config config
     DnsList []string
     Buffer []promwrite.TimeSeries
+    Mu sync.Mutex
 )
 
 
@@ -137,7 +139,7 @@ func readConfig() bool {
     var (
         new_log_conf log_conf
         new_dns_param dns_param
-        new_prometheus prometheus
+        new_prometheus prom
         new_check_interval int
     )
 
@@ -322,10 +324,15 @@ func basicAuth() string {
 
 
 func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) {
+    Mu.Lock()
+	defer Mu.Unlock()
+    t1 := time.Now()
     if len(Buffer) >= Config.buffer_size {
         go sendVM(Buffer)
         Buffer = []promwrite.TimeSeries{}
-        return
+        t3 := time.Now()
+        fmt.Println("Start: ", t1, " End: ", t3, " Diff: ", t1.Sub(t3) )
+        return 
     }
     instance := promwrite.TimeSeries{
         Labels: []promwrite.Label{
@@ -356,6 +363,8 @@ func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm tim
         },
     }
     Buffer = append(Buffer, instance)
+    t2 := time.Now()
+    fmt.Println("Start: ", t1, " End: ", t2, " Diff: ", t1.Sub(t2) )
 }
 
 

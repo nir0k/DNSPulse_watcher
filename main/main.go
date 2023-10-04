@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/castai/promwrite"
@@ -61,6 +62,7 @@ var (
     Config config
     DnsList []string
     Buffer []promwrite.TimeSeries
+    Mu sync.Mutex
 )
 
 
@@ -322,6 +324,8 @@ func basicAuth() string {
 
 
 func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) {
+    Mu.Lock()
+	defer Mu.Unlock()
     if len(Buffer) >= Config.buffer_size {
         go sendVM(Buffer)
         Buffer = []promwrite.TimeSeries{}
