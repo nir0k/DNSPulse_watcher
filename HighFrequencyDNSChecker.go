@@ -498,9 +498,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
             log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
         }
-        if i > 0 {
-            log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
-        }
+        log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
     }
     log.Error("Remote write to VM failed. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
     log.Debug("Request:", req)
