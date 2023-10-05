@@ -1,4 +1,4 @@
-package HighFrequencyDNSChecker
+package main
 
 import (
 	"context"
@@ -438,7 +438,7 @@ func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm t
             },
             {
                 Name: "server",
-                Value: server.Server,
+                Value: server.Server_label,
             },
             {
                 Name: "server_ip",
@@ -499,10 +499,11 @@ func sendVM(items []promwrite.TimeSeries) bool {
             return true
         }
         if i > 0 {
-            log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err, ", request:", req)
+            log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
         }
     }
-    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", request:", req)
+    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    log.Debug("Request:", req)
     return false
 }
 
