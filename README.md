@@ -33,26 +33,26 @@ go build .
 Available parameters in configurations:
 
 - DNS settings:
-`DNS_RESOLVERPATH` - Path to file with list of DNS servers
-`DNS_HOSTPOSTFIX` - Prefix hostname to resolve. Example: test.local.com
-`DNS_POLLING_RATE_NO_RECURSION` - polling rate without recusrion in number of checks per second
-`DNS_POLLING_RATE_RECURSION` - polling rate with recusrion in number of checks per second
-`DNS_TIMEOUT` - DNS answer timeout in seconds
-`DNS_PROTOCOL` - Protocol. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
+  - `DNS_RESOLVERPATH` - Path to file with list of DNS servers
+  - `DNS_HOSTPOSTFIX` - Prefix hostname to resolve. Example: test.local.com
+  - `DNS_POLLING_RATE_NO_RECURSION` - polling rate without recusrion in number of checks per second
+  - `DNS_POLLING_RATE_RECURSION` - polling rate with recusrion in number of checks per second
+  - `DNS_TIMEOUT` - DNS answer timeout in seconds
+  - `DNS_PROTOCOL` - Protocol. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
 
 - Prometheus settings:
-`PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write
-`PROM_METRIC` - Prometheus metric name
-`PROM_AUTH` - Prometheus authentication. false or true. If true, values PROM_USER and PROM_PASS are required
-`PROM_USER` - Prometheus username
-`PROM_PASS` - Prometheus password
-`PROM_RETRIES` - Count retries for post data in prometheus
+  - `PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write
+  - `PROM_METRIC` - Prometheus metric name
+  - `PROM_AUTH` - Prometheus authentication. false or true. If true, values PROM_USER and PROM_PASS are required
+  - `PROM_USER` - Prometheus username
+  - `PROM_PASS` - Prometheus password
+  - `PROM_RETRIES` - Count retries for post data in prometheus
 
 - Watcher settings:
-`LOG_FILE` - Path to log file
-`LOG_LEVEL` - Minimal severity level for logging. Possible values: debug, info, warning, error, fatal (default: warning)
-`CONF_CHECK_INTERVAL` - Interval check changes in config in minutes
-`BUFFER_SIZE` - Timeseries buffer size for sent to prometheus
-`WATCHER_LOCATION` - Watcher location
-`WATCHER_SECURITYZONE` - Watcher security zone
-`DUBLICATE_ALLOW` - Allow or not dublicate record
+  - `LOG_FILE` - Path to log file
+  - `LOG_LEVEL` - Minimal severity level for logging. Possible values: debug, info, warning, error, fatal (default: warning)
+  - `CONF_CHECK_INTERVAL` - Interval check changes in config in minutes
+  - `BUFFER_SIZE` - Timeseries buffer size for sent to prometheus
+  - `WATCHER_LOCATION` - Watcher location
+  - `WATCHER_SECURITYZONE` - Watcher security zone
+  - `DUBLICATE_ALLOW` - Allow or not dublicate record
