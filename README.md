@@ -1,11 +1,14 @@
-# HighFrequencyDNSChecker
+# High-Frequency DNS Resolution Program for Prometheus Integration
+Program Overview:
+Our cutting-edge program is designed to provide high-frequency DNS name resolution for server names from a predefined list. This data is then efficiently recorded in Prometheus, empowering users with real-time insights into their server infrastructure's performance and availability.
 
-Program for high-frequency resolution of server names on DNS servers from a list and recording the result in Prometheus.
-
-Program Features:
-- High-frequency polling (default every 150ms).
-- A random server name is queried with a fixed prefix and it is checked that the IP address 1.1.1.1 is resolved. Server name create on this rule: `<timestamp with miliseconds>.<hostname prefix>`
-- Work in an infinite loop.
+Key Program Features:
+- High-Frequency Polling: Fast and frequent DNS polling (default: every 150ms).
+- Dynamic Server Naming: Random server names with timestamps.
+- IP Address Verification: Ensures that IP address 1.1.1.1 is resolved for each server name.
+- Continuous Monitoring: Operates endlessly in a loop for uninterrupted monitoring.
+- Records resolved server names, resolve time, rcode, protocol, truncated flag and timestamps in Prometheus for historical analysis.
+- Runs in an infinite loop for continuous monitoring.
 
 ### Install
 **requred go 1.21.1**
