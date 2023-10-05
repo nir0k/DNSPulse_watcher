@@ -326,12 +326,9 @@ func basicAuth() string {
 func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm time.Time, value float64) {
     Mu.Lock()
 	defer Mu.Unlock()
-    t1 := time.Now()
     if len(Buffer) >= Config.buffer_size {
         go sendVM(Buffer)
         Buffer = []promwrite.TimeSeries{}
-        t3 := time.Now()
-        fmt.Println("Start: ", t1, " End: ", t3, " Diff: ", t1.Sub(t3) )
         return 
     }
     instance := promwrite.TimeSeries{
@@ -363,8 +360,6 @@ func bufferTimeSeries(server string, tc bool, Rcode int, protocol string, tm tim
         },
     }
     Buffer = append(Buffer, instance)
-    t2 := time.Now()
-    fmt.Println("Start: ", t1, " End: ", t2, " Diff: ", t1.Sub(t2) )
 }
 
 
