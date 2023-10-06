@@ -338,7 +338,7 @@ func readConfig() bool {
             log.Error("Error: Variable PROM_PASS is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
             return false
         }
-    }
+    } 
 
     new_config.ip, err = getLocalIP()
 	if err != nil {
@@ -364,13 +364,13 @@ func readConfig() bool {
     }
 
     new_config.location = os.Getenv("WATCHER_LOCATION")
-    if len(new_prometheus.username) == 0 {
+    if len(new_config.location) == 0 {
         log.Error("Error: Variable WATCHER_LOCATION is required in ", Config.conf_path, " file. Please add this variable with value")
         return false
     }
 
     new_config.securityZone = os.Getenv("WATCHER_SECURITYZONE")
-    if len(new_prometheus.username) == 0 {
+    if len(new_config.securityZone) == 0 {
         log.Error("Error: Variable WATCHER_SECURITYZONE is required in ", Config.conf_path, " file. Please add this variable with value")
         return false
     }
