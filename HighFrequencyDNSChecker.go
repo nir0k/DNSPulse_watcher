@@ -51,7 +51,6 @@ type dns_param struct {
     timeout  int
     polling_rate_without_recursion int
     polling_rate_with_recursion int
-    // host_postfix string
     dns_servers_path string
     dns_servers_file_md5hash string
 }
@@ -507,12 +506,12 @@ func sendVM(items []promwrite.TimeSeries) bool {
     for i := 0; i < Prometheus.retries; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
         if err == nil {
-            log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+            log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
         }
-        log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
+        log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
     }
-    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", Username:", Prometheus.username,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
     log.Debug("Request:", req)
     return false
 }
