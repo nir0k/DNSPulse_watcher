@@ -472,6 +472,23 @@ func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm t
                 Name: "recursion",
                 Value: strconv.FormatBool(recursion),
             },
+
+            {
+                Name: "watcher",
+                Value: Config.hostname,
+            },
+            {
+                Name: "watcher_ip",
+                Value: Config.ip,
+            },
+            {
+                Name: "watcher_security_zone",
+                Value: Config.securityZone,
+            },
+            {
+                Name: "watcher_location",
+                Value: Config.location,
+            },
         },
         Sample: promwrite.Sample{
             Time:  tm,
