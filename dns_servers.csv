@@ -1,3 +1,3 @@
-server,server_ip,recursion,domain,zonename,location,site
-8.8.8.8,8.8.8.8,0,google.com8,testzone8,testloc8,testsite8
-8.8.4.4,8.8.4.4,1,google.com4,testzone4,testloc4,testsite4
+server,server_ip,recursion,domain,zonename,suffix,location,site
+8.8.8.8,8.8.8.8,0,google.com8,testzone8,dnsmon,testloc8,testsite8
+8.8.4.4,8.8.4.4,1,google.com4,testzone4,dnsmon,testloc4,testsite4

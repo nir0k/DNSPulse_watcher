@@ -31,6 +31,7 @@ type Resolver struct {
 	Recursion		string `csv:"recursion"`
     Location        string `csv:"location"`
     Site            string `csv:"site"`
+    Suffix          string `csv:"suffix"`
     Server_label    string
 }
 
@@ -50,7 +51,7 @@ type dns_param struct {
     timeout  int
     polling_rate_without_recursion int
     polling_rate_with_recursion int
-    host_postfix string
+    // host_postfix string
     dns_servers_path string
     dns_servers_file_md5hash string
 }
@@ -271,11 +272,6 @@ func readConfig() bool {
         return false
     }
 
-    new_dns_param.host_postfix = os.Getenv("DNS_HOSTPOSTFIX")    
-    if !isValidDNSName(new_dns_param.host_postfix) {
-        log.Error("Error: Variable HOSTPOSTFIX is wrong in ", Config.conf_path, " file.")
-        return false
-    }
     polling_rate_without_recursion, err := strconv.Atoi(os.Getenv("DNS_POLLING_RATE_NO_RECURSION"))
     if err != nil {
         log.Error("Error: Variable DNS_POLLING_RATE_NO_RECURSION is empty or wrong in ", Config.conf_path, " file. error:", err)
@@ -506,11 +502,11 @@ func sendVM(items []promwrite.TimeSeries) bool {
 }
 
 
-func dnsResolve(target string, server Resolver, recursion bool) {
+func dnsResolve(server Resolver, recursion bool) {
     c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
     c.Net = Dns_param.protocol
     m := dns.Msg{}
-    host := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + target
+    host := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.Suffix + "." + server.Zonename
     request_time := time.Now()
     m.SetQuestion(host+".", dns.TypeA)
     r, t, err := c.Exchange(&m, server.Server+":53")
@@ -538,7 +534,7 @@ func main() {
     log.SetLevel(log.InfoLevel)
     log.Info("Frequency DNS cheker start.")
     log.Info("Prometheus info: url:", Prometheus.url , ", auth:", Prometheus.auth, ", username:", Prometheus.username, ", metric_name:", Prometheus.metric)
-    log.Info("DNS info: DNS server count:", len(DnsDict_without_recursion) + len(DnsDict_with_recursion) , ", hostname_postfix:", Dns_param.host_postfix, ", answer_timeout:", Dns_param.timeout, ", polling_rate_without_recursion:", Dns_param.polling_rate_without_recursion, ", polling_rate_with_recursion:", Dns_param.polling_rate_with_recursion)
+    log.Info("DNS info: DNS server count:", len(DnsDict_without_recursion) + len(DnsDict_with_recursion) , ", answer_timeout:", Dns_param.timeout, ", polling_rate_without_recursion:", Dns_param.polling_rate_without_recursion, ", polling_rate_with_recursion:", Dns_param.polling_rate_with_recursion)
     log.SetLevel(sl)
 
     currentTime := time.Now()
@@ -559,7 +555,7 @@ func main() {
     go func () {
         for {
             for _, r := range DnsDict_without_recursion {
-                go dnsResolve(Dns_param.host_postfix, r, false)
+                go dnsResolve(r, false)
             }
             time.Sleep(time.Duration(Dns_param.polling_rate_without_recursion) * time.Millisecond)
         }
@@ -567,7 +563,7 @@ func main() {
     go func () {
         for {
             for _, r := range DnsDict_with_recursion {
-                go dnsResolve(Dns_param.host_postfix, r, true)
+                go dnsResolve(r, true)
             }
             time.Sleep(time.Duration(Dns_param.polling_rate_with_recursion) * time.Millisecond)
         }
