@@ -194,7 +194,6 @@ func compareFileHash(path string, curent_hash string) (bool, error) {
 
 
 func checkConfig() {
-    fmt.Println("Check Config:", Config.conf_path, ", Interval:", Config.check_interval, ", Now:", time.Now().Format("2006/01/02 03:04:05.000"))
     conf_compare, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
     if !conf_compare {
         sl := log.GetLevel()
