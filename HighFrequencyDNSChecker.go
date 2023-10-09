@@ -610,6 +610,7 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr) []promw
     return labels
 }
 
+
 func bufferTimeSeries(server Resolver, tm time.Time, value float64, recursion bool, response_header dns.MsgHdr) {
     Mu.Lock()
 	defer Mu.Unlock()
