@@ -43,6 +43,7 @@ type prometheus struct {
     password string
     metric string
     retries int
+    single bool
 }
 
 
@@ -327,6 +328,12 @@ func readConfig() bool {
         return false
     }
 
+    new_prometheus.single, err = strconv.ParseBool(os.Getenv("PROM_SEND_SINGLE"))
+    if err != nil {
+        log.Error("Error: Variable PROM_SEND_SINGLE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
     new_prometheus.auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
     if err != nil {
         log.Error("Error: Variable PROM_AUTH is empty or wrong in ", Config.conf_path, " file. error:", err)
@@ -587,8 +594,181 @@ func sendVM(items []promwrite.TimeSeries) bool {
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
-    log.Info("RR:", req)
     log.Debug("TimeSeries:", items)
+    for i := 0; i < Prometheus.retries; i++ {
+        _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
+        if err == nil {
+            log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+            return true
+        }
+        log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
+    }
+    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    log.Debug("Request:", req)
+    return false
+}
+
+func sendVMsingle(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool, check_host string) bool {
+    client := promwrite.NewClient(Prometheus.url)
+    req := &promwrite.WriteRequest{}
+    if Dns_param.Include_check_host {
+        req = &promwrite.WriteRequest{
+            TimeSeries : []promwrite.TimeSeries{
+                {
+                    Labels: []promwrite.Label{
+                        {
+                            Name:  "__name__",
+                            Value: Prometheus.metric,
+                        },
+                        {
+                            Name: "server",
+                            Value: server.Server_label,
+                        },
+                        {
+                            Name: "server_ip",
+                            Value: server.Server_ip,
+                        },
+                        {
+                            Name: "domain",
+                            Value: server.Domain,
+                        },
+                        {
+                            Name: "location",
+                            Value: server.Location,
+                        },
+                        {
+                            Name: "site",
+                            Value: server.Site,
+                        },
+                        {
+                            Name: "zonename",
+                            Value: server.Zonename,
+                        },
+                        {
+                            Name: "truncated",
+                            Value: strconv.FormatBool(tc),
+                        },
+                        {
+                            Name: "rcode",
+                            Value: strconv.Itoa(rcode),
+                        },
+                        {
+                            Name: "protocol",
+                            Value: protocol,
+                        },
+                        {
+                            Name: "recursion",
+                            Value: strconv.FormatBool(recursion),
+                        },
+            
+                        {
+                            Name: "watcher",
+                            Value: Config.hostname,
+                        },
+                        {
+                            Name: "watcher_ip",
+                            Value: Config.ip,
+                        },
+                        {
+                            Name: "watcher_security_zone",
+                            Value: Config.securityZone,
+                        },
+                        {
+                            Name: "watcher_location",
+                            Value: Config.location,
+                        },
+                        {
+                            Name: "checked_host",
+                            Value: check_host,
+                        },
+                    },
+                    Sample: promwrite.Sample{
+                        Time:  tm,
+                        Value: value,
+                    },
+                },
+            },
+        }
+    } else {
+        req = &promwrite.WriteRequest{
+            TimeSeries : []promwrite.TimeSeries{
+                {
+                    Labels: []promwrite.Label{
+                        {
+                            Name:  "__name__",
+                            Value: Prometheus.metric,
+                        },
+                        {
+                            Name: "server",
+                            Value: server.Server_label,
+                        },
+                        {
+                            Name: "server_ip",
+                            Value: server.Server_ip,
+                        },
+                        {
+                            Name: "domain",
+                            Value: server.Domain,
+                        },
+                        {
+                            Name: "location",
+                            Value: server.Location,
+                        },
+                        {
+                            Name: "site",
+                            Value: server.Site,
+                        },
+                        {
+                            Name: "zonename",
+                            Value: server.Zonename,
+                        },
+                        {
+                            Name: "truncated",
+                            Value: strconv.FormatBool(tc),
+                        },
+                        {
+                            Name: "rcode",
+                            Value: strconv.Itoa(rcode),
+                        },
+                        {
+                            Name: "protocol",
+                            Value: protocol,
+                        },
+                        {
+                            Name: "recursion",
+                            Value: strconv.FormatBool(recursion),
+                        },
+            
+                        {
+                            Name: "watcher",
+                            Value: Config.hostname,
+                        },
+                        {
+                            Name: "watcher_ip",
+                            Value: Config.ip,
+                        },
+                        {
+                            Name: "watcher_security_zone",
+                            Value: Config.securityZone,
+                        },
+                        {
+                            Name: "watcher_location",
+                            Value: Config.location,
+                        },
+                        {
+                            Name: "checked_host",
+                            Value: check_host,
+                        },
+                    },
+                    Sample: promwrite.Sample{
+                        Time:  tm,
+                        Value: value,
+                    },
+                },
+            },
+        }
+    }
+    log.Debug("TimeSeries:", req)
     for i := 0; i < Prometheus.retries; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
         if err == nil {
@@ -613,18 +793,30 @@ func dnsResolve(server Resolver, recursion bool) {
     r, t, err := c.Exchange(&m, server.Server+":53")
     if err != nil {
         log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
+        if Prometheus.single {
+            sendVMsingle(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
+        } else {
+            bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
+        }
     } else {
         if len(r.Answer) == 0 {
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            if Prometheus.single {
+                sendVMsingle(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            } else {
+                bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            }
         }  else {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
             }
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            if Prometheus.single {
+                sendVMsingle(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            } else {
+                bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+            }
         }
     }
 }
