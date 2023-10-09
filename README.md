@@ -42,6 +42,7 @@ Available parameters in configurations:
   - `DNS_POLLING_RATE_RECURSION` - polling rate with recusrion in number of checks per second
   - `DNS_TIMEOUT` - DNS answer timeout in seconds
   - `DNS_PROTOCOL` - Protocol. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
+  - `DNS_CHECK_HOST_INCLUDE` - Add checking host in metric label. Possible value: true or false
 
 - Prometheus settings:
   - `PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write

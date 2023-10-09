@@ -53,6 +53,7 @@ type dns_param struct {
     polling_rate_with_recursion int
     dns_servers_path string
     dns_servers_file_md5hash string
+    Include_check_host bool
 }
 
 
@@ -195,7 +196,7 @@ func compareFileHash(path string, curent_hash string) (bool, error) {
 func checkConfig() {
     conf_compare, _ := compareFileHash(Config.conf_path, Config.conf_md5hash)
     if !conf_compare {
-        sl := log.GetLevel()
+        sl :=  log.GetLevel()
         log.Info("Config has been changed")
         fmt.Println("Config has been changed")
         log.SetLevel(sl)
@@ -297,6 +298,12 @@ func readConfig() bool {
         return false
     } else if !regexpPattern.MatchString(new_dns_param.protocol) {
         log.Error("Error: Variable DNS_PROTOCOL is empty or wrong in ", Config.conf_path, " file.")
+        return false
+    }
+
+    new_dns_param.Include_check_host, err = strconv.ParseBool(os.Getenv("DNS_CHECK_HOST_INCLUDE"))
+    if err != nil {
+        log.Error("Error: Variable DNS_CHECK_HOST_INCLUDE is empty or wrong in ", Config.conf_path, " file. error:", err)
         return false
     }
 
@@ -416,12 +423,89 @@ func basicAuth() string {
 }
 
 
-func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool) {
+func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool, check_host string) {
     Mu.Lock()
 	defer Mu.Unlock()
     if len(Buffer) >= Config.buffer_size {
         go sendVM(Buffer)
-        Buffer = []promwrite.TimeSeries{}
+        Buffer = nil
+        return
+    }
+    if Dns_param.Include_check_host {
+        instance := promwrite.TimeSeries{
+            Labels: []promwrite.Label{
+                {
+                    Name:  "__name__",
+                    Value: Prometheus.metric,
+                },
+                {
+                    Name: "server",
+                    Value: server.Server_label,
+                },
+                {
+                    Name: "server_ip",
+                    Value: server.Server_ip,
+                },
+                {
+                    Name: "domain",
+                    Value: server.Domain,
+                },
+                {
+                    Name: "location",
+                    Value: server.Location,
+                },
+                {
+                    Name: "site",
+                    Value: server.Site,
+                },
+                {
+                    Name: "zonename",
+                    Value: server.Zonename,
+                },
+                {
+                    Name: "truncated",
+                    Value: strconv.FormatBool(tc),
+                },
+                {
+                    Name: "rcode",
+                    Value: strconv.Itoa(rcode),
+                },
+                {
+                    Name: "protocol",
+                    Value: protocol,
+                },
+                {
+                    Name: "recursion",
+                    Value: strconv.FormatBool(recursion),
+                },
+    
+                {
+                    Name: "watcher",
+                    Value: Config.hostname,
+                },
+                {
+                    Name: "watcher_ip",
+                    Value: Config.ip,
+                },
+                {
+                    Name: "watcher_security_zone",
+                    Value: Config.securityZone,
+                },
+                {
+                    Name: "watcher_location",
+                    Value: Config.location,
+                },
+                {
+                    Name: "checked_host",
+                    Value: check_host,
+                },
+            },
+            Sample: promwrite.Sample{
+                Time:  tm,
+                Value: value,
+            },
+        }
+        Buffer = append(Buffer, instance)
         return
     }
     instance := promwrite.TimeSeries{
@@ -499,9 +583,11 @@ func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm t
 
 func sendVM(items []promwrite.TimeSeries) bool {
     client := promwrite.NewClient(Prometheus.url)
+    
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
+    log.Info("RR:", req)
     log.Debug("TimeSeries:", items)
     for i := 0; i < Prometheus.retries; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
@@ -527,18 +613,18 @@ func dnsResolve(server Resolver, recursion bool) {
     r, t, err := c.Exchange(&m, server.Server+":53")
     if err != nil {
         log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t), recursion)
+        bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
     } else {
         if len(r.Answer) == 0 {
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion)
-        } else {
+            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
+        }  else {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
             }
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion)
+            bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
         }
     }
 }
@@ -549,6 +635,7 @@ func main() {
     log.SetLevel(log.InfoLevel)
     log.Info("Frequency DNS cheker start.")
     log.Info("Prometheus info: url:", Prometheus.url , ", auth:", Prometheus.auth, ", username:", Prometheus.username, ", metric_name:", Prometheus.metric)
+    log.Info("DNS info: DNS server count:", )
     log.Info("DNS info: DNS server count:", len(DnsDict_without_recursion) + len(DnsDict_with_recursion) , ", answer_timeout:", Dns_param.timeout, ", polling_rate_without_recursion:", Dns_param.polling_rate_without_recursion, ", polling_rate_with_recursion:", Dns_param.polling_rate_with_recursion)
     log.SetLevel(sl)
 
