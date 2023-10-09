@@ -32,6 +32,7 @@ type Resolver struct {
     Location        string `csv:"location"`
     Site            string `csv:"site"`
     Suffix          string `csv:"suffix"`
+    Protocol        string `csv:"protocol"`
     Server_label    string
 }
 
@@ -43,7 +44,20 @@ type prometheus struct {
     password string
     metric string
     retries int
-    single bool
+    metrics metrics
+
+}
+
+
+type metrics struct {
+    rcode bool
+    opscodes bool
+    authoritative bool
+    truncated bool
+    recursionDesired bool
+    recursionAvailable bool
+    authenticatedData bool
+    checkingDisabled bool
 }
 
 
@@ -54,7 +68,6 @@ type dns_param struct {
     polling_rate_with_recursion int
     dns_servers_path string
     dns_servers_file_md5hash string
-    Include_check_host bool
 }
 
 
@@ -216,12 +229,6 @@ func checkConfig() {
 
 
 func readConfig() bool {
-    var (
-        new_log_conf log_conf
-        new_dns_param dns_param
-        new_prometheus prometheus
-        new_config config
-    )
 
     err := godotenv.Overload()
     if err != nil {
@@ -229,6 +236,29 @@ func readConfig() bool {
         log.Error("Error loading ", Config.conf_path, " file", err)
         return false
     }
+
+    if !readConfigLog() {
+        return false
+    }
+
+    if !readConfigWatcher() {
+        return false
+    }
+
+    if !readConfigPrometheus() {
+        return false
+    }
+
+    if !readConfigDNS() {
+        return false
+    }
+
+    
+    return true
+}
+
+func readConfigLog() bool {
+    var new_log_conf log_conf
 
     new_log_conf.log_path = os.Getenv("LOG_FILE")
     validPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
@@ -257,6 +287,166 @@ func readConfig() bool {
             return false
         } 
     }
+
+    Log_conf = new_log_conf
+    return true
+}
+
+
+func readConfigWatcher() bool {
+    var (
+        new_config config
+        err error
+    )
+
+    new_config.conf_path = ".env"
+
+    new_config.ip, err = getLocalIP()
+	if err != nil {
+		log.Error("Error getting watcher IP address:", err)
+        return false
+	}
+    new_config.buffer_size, err = strconv.Atoi(os.Getenv("BUFFER_SIZE"))
+    if err != nil {
+        log.Error("Warning: Variable BUFFER_SIZE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    new_config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
+    if err != nil {
+        log.Error("Error: calculate hash to file '", Config.conf_path, "'")
+        return false
+    }
+
+    new_config.check_interval, err = strconv.Atoi(os.Getenv("CONF_CHECK_INTERVAL"))
+    if err != nil {
+        log.Error("Warning: Variable CONF_CHECK_INTERVAL is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    new_config.location = os.Getenv("WATCHER_LOCATION")
+    if len(new_config.location) == 0 {
+        log.Error("Error: Variable WATCHER_LOCATION is required in ", Config.conf_path, " file. Please add this variable with value")
+        return false
+    }
+
+    new_config.securityZone = os.Getenv("WATCHER_SECURITYZONE")
+    if len(new_config.securityZone) == 0 {
+        log.Error("Error: Variable WATCHER_SECURITYZONE is required in ", Config.conf_path, " file. Please add this variable with value")
+        return false
+    }
+
+    new_config.hostname, err = os.Hostname()
+    if err != nil {
+        log.Error("Error getting watcher hostname:", err)
+        return false
+    }
+
+    new_config.dublicate, err = strconv.ParseBool(os.Getenv("DUBLICATE_ALLOW"))
+    if err != nil {
+        log.Error("Error: Variable DUBLICATE_ALLOW is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    Config = new_config
+    return true
+}
+
+
+func readConfigPrometheus() bool {
+    var (
+        new_prometheus prometheus
+        err error
+    )
+
+    new_prometheus.url = os.Getenv("PROM_URL")
+    if !isValidURL(new_prometheus.url) {
+        log.Error("Error: Variable PROM_URL is required in ", Config.conf_path, " file. Please add this variable with value")
+        return false
+    }
+
+    new_prometheus.metric = os.Getenv("PROM_METRIC")
+    if !isAlphaNumericWithDashOrUnderscore(new_prometheus.metric) {
+        log.Error("Error: Variable PROM_METRIC is empty or wrong in ", Config.conf_path, " file.")
+        return false
+    }
+
+    new_prometheus.retries, err = strconv.Atoi(os.Getenv("PROM_RETRIES"))
+    if err != nil {
+        log.Error("Error: Variable PROM_RETRIES is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    new_prometheus.auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
+    if err != nil {
+        log.Error("Error: Variable PROM_AUTH is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    if new_prometheus.auth {
+        new_prometheus.username = os.Getenv("PROM_USER")
+        if len(new_prometheus.username) == 0 {
+            log.Error("Error: Variable PROM_USER is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            return false
+        }
+        new_prometheus.password = os.Getenv("PROM_PASS")
+        if len(new_prometheus.password) == 0 {
+            log.Error("Error: Variable PROM_PASS is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            return false
+        }
+    } 
+
+    new_prometheus.metrics.opscodes, err = strconv.ParseBool(os.Getenv("OPCODES"))
+    if err != nil {
+        log.Error("Error: Variable OPCODES is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.authoritative, err = strconv.ParseBool(os.Getenv("AUTHORITATIVE"))
+    if err != nil {
+        log.Error("Error: Variable AUTHORITATIVE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.truncated, err = strconv.ParseBool(os.Getenv("TRUNCATED"))
+    if err != nil {
+        log.Error("Error: Variable TRUNCATED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.rcode, err = strconv.ParseBool(os.Getenv("RCODE"))
+    if err != nil {
+        log.Error("Error: Variable RCODE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.recursionDesired, err = strconv.ParseBool(os.Getenv("RECURSION_DESIRED"))
+    if err != nil {
+        log.Error("Error: Variable RECURSION_DESIRED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.recursionAvailable, err = strconv.ParseBool(os.Getenv("RECURSION_AVAILABLE"))
+    if err != nil {
+        log.Error("Error: Variable RECURSION_AVAILABLE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.authenticatedData, err = strconv.ParseBool(os.Getenv("AUTHENTICATE_DATA"))
+    if err != nil {
+        log.Error("Error: Variable AUTHENTICATE_DATA is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+    new_prometheus.metrics.checkingDisabled, err = strconv.ParseBool(os.Getenv("CHECKING_DISABLED"))
+    if err != nil {
+        log.Error("Error: Variable CHECKING_DISABLED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
+    Prometheus = new_prometheus
+    return true
+}
+
+
+func readConfigDNS() bool {
+    var (
+        new_dns_param dns_param
+        err error
+    )
 
     new_dns_param.dns_servers_path = os.Getenv("DNS_RESOLVERPATH")
     validRPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
@@ -296,110 +486,9 @@ func readConfig() bool {
         return false
     }
 
-    new_dns_param.Include_check_host, err = strconv.ParseBool(os.Getenv("DNS_CHECK_HOST_INCLUDE"))
-    if err != nil {
-        log.Error("Error: Variable DNS_CHECK_HOST_INCLUDE is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
     new_dns_param.dns_servers_file_md5hash = Dns_param.dns_servers_file_md5hash
 
-    new_prometheus.url = os.Getenv("PROM_URL")
-    if !isValidURL(new_prometheus.url) {
-        log.Error("Error: Variable PROM_URL is required in ", Config.conf_path, " file. Please add this variable with value")
-        return false
-    }
-
-    new_prometheus.metric = os.Getenv("PROM_METRIC")
-    if !isAlphaNumericWithDashOrUnderscore(new_prometheus.metric) {
-        log.Error("Error: Variable PROM_METRIC is empty or wrong in ", Config.conf_path, " file.")
-        return false
-    }
-
-    new_prometheus.retries, err = strconv.Atoi(os.Getenv("PROM_RETRIES"))
-    if err != nil {
-        log.Error("Error: Variable PROM_RETRIES is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    new_prometheus.single, err = strconv.ParseBool(os.Getenv("PROM_SEND_SINGLE"))
-    if err != nil {
-        log.Error("Error: Variable PROM_SEND_SINGLE is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    new_prometheus.auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
-    if err != nil {
-        log.Error("Error: Variable PROM_AUTH is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    if new_prometheus.auth {
-        new_prometheus.username = os.Getenv("PROM_USER")
-        if len(new_prometheus.username) == 0 {
-            log.Error("Error: Variable PROM_USER is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
-            return false
-        }
-        new_prometheus.password = os.Getenv("PROM_PASS")
-        if len(new_prometheus.password) == 0 {
-            log.Error("Error: Variable PROM_PASS is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
-            return false
-        }
-    } 
-
-    new_config.ip, err = getLocalIP()
-	if err != nil {
-		log.Error("Error getting watcher IP address:", err)
-        return false
-	}
-    new_config.buffer_size, err = strconv.Atoi(os.Getenv("BUFFER_SIZE"))
-    if err != nil {
-        log.Error("Warning: Variable BUFFER_SIZE is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    new_config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
-    if err != nil {
-        log.Error("Error: calculate hash to file '", Config.conf_path, "'")
-        return false
-    }
-
-    new_config.check_interval, err = strconv.Atoi(os.Getenv("CONF_CHECK_INTERVAL"))
-    if err != nil {
-        log.Error("Warning: Variable CONF_CHECK_INTERVAL is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    new_config.location = os.Getenv("WATCHER_LOCATION")
-    if len(new_config.location) == 0 {
-        log.Error("Error: Variable WATCHER_LOCATION is required in ", Config.conf_path, " file. Please add this variable with value")
-        return false
-    }
-
-    new_config.securityZone = os.Getenv("WATCHER_SECURITYZONE")
-    if len(new_config.securityZone) == 0 {
-        log.Error("Error: Variable WATCHER_SECURITYZONE is required in ", Config.conf_path, " file. Please add this variable with value")
-        return false
-    }
-
-    new_config.conf_path = ".env"
-    new_config.hostname, err = os.Hostname()
-    if err != nil {
-        log.Error("Error getting watcher hostname:", err)
-        return false
-    }
-
-    new_config.dublicate, err = strconv.ParseBool(os.Getenv("DUBLICATE_ALLOW"))
-    if err != nil {
-        log.Error("Error: Variable DUBLICATE_ALLOW is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
-    Log_conf = new_log_conf
     Dns_param = new_dns_param
-    Prometheus = new_prometheus
-    Config = new_config
-    
     return true
 }
 
@@ -424,7 +513,104 @@ func basicAuth() string {
 }
 
 
-func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool, check_host string) {
+func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr) []promwrite.Label {
+    var label promwrite.Label
+
+    labels := []promwrite.Label{
+        {
+            Name:  "__name__",
+            Value: Prometheus.metric,
+        },
+        {
+            Name: "server",
+            Value: server.Server_label,
+        },
+        {
+            Name: "server_ip",
+            Value: server.Server_ip,
+        },
+        {
+            Name: "domain",
+            Value: server.Domain,
+        },
+        {
+            Name: "location",
+            Value: server.Location,
+        },
+        {
+            Name: "site",
+            Value: server.Site,
+        },
+        {
+            Name: "zonename",
+            Value: server.Zonename,
+        },
+        {
+            Name: "watcher",
+            Value: Config.hostname,
+        },
+        {
+            Name: "watcher_ip",
+            Value: Config.ip,
+        },
+        {
+            Name: "watcher_security_zone",
+            Value: Config.securityZone,
+        },
+        {
+            Name: "watcher_location",
+            Value: Config.location,
+        },
+        {
+            Name: "protocol",
+            Value: server.Protocol,
+        },
+    }
+
+    if Prometheus.metrics.authenticatedData {
+        label.Name = "authenticated_data"
+        label.Value = strconv.FormatBool(r_header.AuthenticatedData)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.authoritative {
+        label.Name = "authoritative"
+        label.Value = strconv.FormatBool(r_header.Authoritative)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.checkingDisabled {
+        label.Name = "checking_disabled"
+        label.Value = strconv.FormatBool(r_header.CheckingDisabled)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.opscodes {
+        label.Name = "opscodes"
+        label.Value = strconv.Itoa(r_header.Opcode)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.rcode {
+        label.Name = "rcode"
+        label.Value = strconv.Itoa(r_header.Rcode)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.recursionAvailable {
+        label.Name = "recursion_available"
+        label.Value = strconv.FormatBool(r_header.RecursionAvailable)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.recursionDesired {
+        label.Name = "recursion_desired"
+        label.Value = strconv.FormatBool(r_header.RecursionDesired)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.truncated {
+        label.Name = "truncated"
+        label.Value = strconv.FormatBool(r_header.Truncated)
+        labels = append(labels, label)
+    }
+    return labels
+}
+
+func bufferTimeSeries(server Resolver, tm time.Time, value float64, recursion bool, response_header dns.MsgHdr) {
     Mu.Lock()
 	defer Mu.Unlock()
     if len(Buffer) >= Config.buffer_size {
@@ -432,147 +618,8 @@ func bufferTimeSeries(server Resolver, tc bool, rcode int, protocol string, tm t
         Buffer = nil
         return
     }
-    if Dns_param.Include_check_host {
-        instance := promwrite.TimeSeries{
-            Labels: []promwrite.Label{
-                {
-                    Name:  "__name__",
-                    Value: Prometheus.metric,
-                },
-                {
-                    Name: "server",
-                    Value: server.Server_label,
-                },
-                {
-                    Name: "server_ip",
-                    Value: server.Server_ip,
-                },
-                {
-                    Name: "domain",
-                    Value: server.Domain,
-                },
-                {
-                    Name: "location",
-                    Value: server.Location,
-                },
-                {
-                    Name: "site",
-                    Value: server.Site,
-                },
-                {
-                    Name: "zonename",
-                    Value: server.Zonename,
-                },
-                {
-                    Name: "truncated",
-                    Value: strconv.FormatBool(tc),
-                },
-                {
-                    Name: "rcode",
-                    Value: strconv.Itoa(rcode),
-                },
-                {
-                    Name: "protocol",
-                    Value: protocol,
-                },
-                {
-                    Name: "recursion",
-                    Value: strconv.FormatBool(recursion),
-                },
-    
-                {
-                    Name: "watcher",
-                    Value: Config.hostname,
-                },
-                {
-                    Name: "watcher_ip",
-                    Value: Config.ip,
-                },
-                {
-                    Name: "watcher_security_zone",
-                    Value: Config.securityZone,
-                },
-                {
-                    Name: "watcher_location",
-                    Value: Config.location,
-                },
-                {
-                    Name: "checked_host",
-                    Value: check_host,
-                },
-            },
-            Sample: promwrite.Sample{
-                Time:  tm,
-                Value: value,
-            },
-        }
-        Buffer = append(Buffer, instance)
-        return
-    }
     instance := promwrite.TimeSeries{
-        Labels: []promwrite.Label{
-            {
-                Name:  "__name__",
-                Value: Prometheus.metric,
-            },
-            {
-                Name: "server",
-                Value: server.Server_label,
-            },
-            {
-                Name: "server_ip",
-                Value: server.Server_ip,
-            },
-            {
-                Name: "domain",
-                Value: server.Domain,
-            },
-            {
-                Name: "location",
-                Value: server.Location,
-            },
-            {
-                Name: "site",
-                Value: server.Site,
-            },
-            {
-                Name: "zonename",
-                Value: server.Zonename,
-            },
-            {
-                Name: "truncated",
-                Value: strconv.FormatBool(tc),
-            },
-            {
-                Name: "rcode",
-                Value: strconv.Itoa(rcode),
-            },
-            {
-                Name: "protocol",
-                Value: protocol,
-            },
-            {
-                Name: "recursion",
-                Value: strconv.FormatBool(recursion),
-            },
-
-            {
-                Name: "watcher",
-                Value: Config.hostname,
-            },
-            {
-                Name: "watcher_ip",
-                Value: Config.ip,
-            },
-            {
-                Name: "watcher_security_zone",
-                Value: Config.securityZone,
-            },
-            {
-                Name: "watcher_location",
-                Value: Config.location,
-            },
-        },
+        Labels: collectLabels(server, recursion, response_header),
         Sample: promwrite.Sample{
             Time:  tm,
             Value: value,
@@ -602,175 +649,6 @@ func sendVM(items []promwrite.TimeSeries) bool {
     return false
 }
 
-func sendVMsingle(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool, check_host string) bool {
-    client := promwrite.NewClient(Prometheus.url)
-    req := &promwrite.WriteRequest{}
-    if Prometheus.single {
-        req = &promwrite.WriteRequest{
-            TimeSeries : []promwrite.TimeSeries{
-                {
-                    Labels: []promwrite.Label{
-                        {
-                            Name:  "__name__",
-                            Value: Prometheus.metric,
-                        },
-                        {
-                            Name: "server",
-                            Value: server.Server_label,
-                        },
-                        {
-                            Name: "server_ip",
-                            Value: server.Server_ip,
-                        },
-                        {
-                            Name: "domain",
-                            Value: server.Domain,
-                        },
-                        {
-                            Name: "location",
-                            Value: server.Location,
-                        },
-                        {
-                            Name: "site",
-                            Value: server.Site,
-                        },
-                        {
-                            Name: "zonename",
-                            Value: server.Zonename,
-                        },
-                        {
-                            Name: "truncated",
-                            Value: strconv.FormatBool(tc),
-                        },
-                        {
-                            Name: "rcode",
-                            Value: strconv.Itoa(rcode),
-                        },
-                        {
-                            Name: "protocol",
-                            Value: protocol,
-                        },
-                        {
-                            Name: "recursion",
-                            Value: strconv.FormatBool(recursion),
-                        },
-            
-                        {
-                            Name: "watcher",
-                            Value: Config.hostname,
-                        },
-                        {
-                            Name: "watcher_ip",
-                            Value: Config.ip,
-                        },
-                        {
-                            Name: "watcher_security_zone",
-                            Value: Config.securityZone,
-                        },
-                        {
-                            Name: "watcher_location",
-                            Value: Config.location,
-                        },
-                    },
-                    Sample: promwrite.Sample{
-                        Time:  tm,
-                        Value: value,
-                    },
-                },
-            },
-        }
-    } else {
-        req = &promwrite.WriteRequest{
-            TimeSeries : []promwrite.TimeSeries{
-                {
-                    Labels: []promwrite.Label{
-                        {
-                            Name:  "__name__",
-                            Value: Prometheus.metric,
-                        },
-                        {
-                            Name: "server",
-                            Value: server.Server_label,
-                        },
-                        {
-                            Name: "server_ip",
-                            Value: server.Server_ip,
-                        },
-                        {
-                            Name: "domain",
-                            Value: server.Domain,
-                        },
-                        {
-                            Name: "location",
-                            Value: server.Location,
-                        },
-                        {
-                            Name: "site",
-                            Value: server.Site,
-                        },
-                        {
-                            Name: "zonename",
-                            Value: server.Zonename,
-                        },
-                        {
-                            Name: "truncated",
-                            Value: strconv.FormatBool(tc),
-                        },
-                        {
-                            Name: "rcode",
-                            Value: strconv.Itoa(rcode),
-                        },
-                        {
-                            Name: "protocol",
-                            Value: protocol,
-                        },
-                        {
-                            Name: "recursion",
-                            Value: strconv.FormatBool(recursion),
-                        },
-            
-                        {
-                            Name: "watcher",
-                            Value: Config.hostname,
-                        },
-                        {
-                            Name: "watcher_ip",
-                            Value: Config.ip,
-                        },
-                        {
-                            Name: "watcher_security_zone",
-                            Value: Config.securityZone,
-                        },
-                        {
-                            Name: "watcher_location",
-                            Value: Config.location,
-                        },
-                        {
-                            Name: "checked_host",
-                            Value: check_host,
-                        },
-                    },
-                    Sample: promwrite.Sample{
-                        Time:  tm,
-                        Value: value,
-                    },
-                },
-            },
-        }
-    }
-    log.Debug("TimeSeries (single):", req)
-    for i := 0; i < Prometheus.retries; i++ {
-        _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
-        if err == nil {
-            log.Debug("Remote write to VM succesfull. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
-            return true
-        }
-        log.Warn("Remote write to VM failed. Retry ", i+1, " of ", Prometheus.retries, ". URL:", Prometheus.url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
-    }
-    log.Error("Remote write to VM failed. URL:", Prometheus.url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
-    log.Debug("Request:", req)
-    return false
-}
 
 
 func dnsResolve(server Resolver, recursion bool) {
@@ -783,30 +661,18 @@ func dnsResolve(server Resolver, recursion bool) {
     r, t, err := c.Exchange(&m, server.Server+":53")
     if err != nil {
         log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        if Prometheus.single {
-            sendVMsingle(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
-        } else {
-            bufferTimeSeries(server, false, 3842, c.Net, request_time, float64(t), recursion, host)
-        }
+        bufferTimeSeries(server, request_time, float64(t), recursion, dns.MsgHdr{})
     } else {
         if len(r.Answer) == 0 {
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            if Prometheus.single {
-                sendVMsingle(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
-            } else {
-                bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
-            }
+            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr)
         }  else {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
             }
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            if Prometheus.single {
-                sendVMsingle(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
-            } else {
-                bufferTimeSeries(server, r.MsgHdr.Truncated, r.MsgHdr.Rcode, c.Net, request_time, float64(t), recursion, host)
-            }
+            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr)
         }
     }
 }

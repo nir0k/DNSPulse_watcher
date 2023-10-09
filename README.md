@@ -51,6 +51,15 @@ Available parameters in configurations:
   - `PROM_USER` - Prometheus username
   - `PROM_PASS` - Prometheus password
   - `PROM_RETRIES` - Count retries for post data in prometheus
+  - Labels: 
+    - `OPCODES` - OpCodes. Possible value: true or false
+    - `AUTHORITATIVE` - Authoritative. Possible value: true or false
+    - `TRUNCATED` - Truncated. Possible value: true or false
+    - `RCODE` - Rcode. Possible value: true or false
+    - `RECURSION_DESIRED` - RecursionDesired. Possible value: true or false
+    - `RECURSION_AVAILABLE` - RecursionAvailable. Possible value: true or false
+    - `AUTHENTICATE_DATA` - AuthenticatedData. Possible value: true or false
+    - `CHECKING_DISABLED` - CheckingDisabled. Possible value: true or false
 
 - Watcher settings:
   - `LOG_FILE` - Path to log file
