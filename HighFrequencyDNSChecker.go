@@ -605,7 +605,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
 func sendVMsingle(server Resolver, tc bool, rcode int, protocol string, tm time.Time, value float64, recursion bool, check_host string) bool {
     client := promwrite.NewClient(Prometheus.url)
     req := &promwrite.WriteRequest{}
-    if Dns_param.Include_check_host {
+    if Prometheus.single {
         req = &promwrite.WriteRequest{
             TimeSeries : []promwrite.TimeSeries{
                 {
