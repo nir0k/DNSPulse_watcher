@@ -68,3 +68,4 @@ Available parameters in configurations:
   - `WATCHER_LOCATION` - Watcher location
   - `WATCHER_SECURITYZONE` - Watcher security zone
   - `DUBLICATE_ALLOW` - Allow or not dublicate record
+  
