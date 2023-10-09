@@ -144,12 +144,6 @@ func readDNSServersFromCSV() bool {
 }
 
 
-func isValidDNSName(name string) bool {
-    dnsNameRegex := regexp.MustCompile(`^(?i:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*(?i:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)$`)
-    return dnsNameRegex.MatchString(name)
-}
-
-
 func isValidURL(inputURL string) bool {
     _, err := url.ParseRequestURI(inputURL)
     return err == nil
@@ -676,10 +670,6 @@ func sendVMsingle(server Resolver, tc bool, rcode int, protocol string, tm time.
                         {
                             Name: "watcher_location",
                             Value: Config.location,
-                        },
-                        {
-                            Name: "checked_host",
-                            Value: check_host,
                         },
                     },
                     Sample: promwrite.Sample{
