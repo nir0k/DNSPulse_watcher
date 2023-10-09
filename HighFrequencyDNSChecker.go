@@ -768,7 +768,7 @@ func sendVMsingle(server Resolver, tc bool, rcode int, protocol string, tm time.
             },
         }
     }
-    log.Debug("TimeSeries:", req)
+    log.Debug("TimeSeries (single):", req)
     for i := 0; i < Prometheus.retries; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
         if err == nil {
