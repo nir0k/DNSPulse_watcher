@@ -58,6 +58,7 @@ type metrics struct {
     authenticatedData bool
     checkingDisabled bool
     polling_rate bool
+    recusrion bool
 }
 
 
@@ -419,6 +420,12 @@ func readConfigPrometheus() bool {
         return false
     }
 
+    new_prometheus.metrics.recusrion, err = strconv.ParseBool(os.Getenv("RECURSION"))
+    if err != nil {
+        log.Error("Error: Variable RECURSION is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
     Prometheus = new_prometheus
     return true
 }
@@ -568,6 +575,11 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling
     if Prometheus.metrics.polling_rate {
         label.Name = "polling_rate"
         label.Value = strconv.FormatBool(r_header.Truncated)
+        labels = append(labels, label)
+    }
+    if Prometheus.metrics.recusrion {
+        label.Name = "recursion"
+        label.Value = strconv.FormatBool(recursion)
         labels = append(labels, label)
     }
     return labels
