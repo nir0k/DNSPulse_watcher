@@ -18,7 +18,6 @@ import (
 	"github.com/castai/promwrite"
 	"github.com/gocarina/gocsv"
 	"github.com/joho/godotenv"
-	// "github.com/ledongthuc/goterators"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 )

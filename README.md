@@ -37,11 +37,7 @@ Available parameters in configurations:
 
 - DNS settings:
   - `DNS_RESOLVERPATH` - Path to file with list of DNS servers
-  - `DNS_HOSTPOSTFIX` - Prefix hostname to resolve. Example: test.local.com
-  - `DNS_POLLING_RATE_NO_RECURSION` - polling rate without recusrion in number of checks per second
-  - `DNS_POLLING_RATE_RECURSION` - polling rate with recusrion in number of checks per second
   - `DNS_TIMEOUT` - DNS answer timeout in seconds
-  - `DNS_PROTOCOL` - Protocol. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
 
 - Prometheus settings:
   - `PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write
@@ -67,5 +63,27 @@ Available parameters in configurations:
   - `BUFFER_SIZE` - Timeseries buffer size for sent to prometheus
   - `WATCHER_LOCATION` - Watcher location
   - `WATCHER_SECURITYZONE` - Watcher security zone
-  - `DUBLICATE_ALLOW` - Allow or not dublicate record
   
+
+CSV structure:
+Delimeter: `,` (comma)
+
+Example CSV:
+```csv
+server,server_ip,domain,suffix,location,site,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
+google_dns_1,8.8.8.8,google.com1,dnsmon,testloc1,testsite1,udp,testzone1,5,testzone1_r,2
+```
+
+Field descriptiom:
+
+ - `server` - DNS Server name. Value type: String
+ - `server_ip` - DNS Server IP address. Value type: String
+ - `domain` - Domain. Value type: String
+ - `suffix` - 
+ - `location` - DNS Server Location. Value type: String
+ - `site` - DNS Server Site. Value type: String
+ - `protocol` - Protocol Used for polling. Value type: String. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
+ - `zonename` - DNS Zonename without recusrion. Value type: String
+ - `query_count_rps` - Count request per secconds for DSN server polling without recursion. Value type: Intenger
+ - `zonename_with_recursion` - DNS Zonename with recusrion. Value type: String
+ - `query_count_with_recursion_rps` - Count request per secconds for DSN server polling with recursion. Value type: Intenger
