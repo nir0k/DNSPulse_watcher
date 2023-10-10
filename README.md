@@ -55,6 +55,8 @@ go build .
     - `RECURSION_AVAILABLE` - RecursionAvailable. Possible value: true or false
     - `AUTHENTICATE_DATA` - AuthenticatedData. Possible value: true or false
     - `CHECKING_DISABLED` - CheckingDisabled. Possible value: true or false
+    - `POLLING_RATE` - Polling rate. Possible value: true or false
+    - `RECURSION` - Recursion. Request with reqursion or not. Possible value: true or false
 
 - Watcher settings:
   - `LOG_FILE` - Path to log file
