@@ -18,7 +18,7 @@ import (
 	"github.com/castai/promwrite"
 	"github.com/gocarina/gocsv"
 	"github.com/joho/godotenv"
-	"github.com/ledongthuc/goterators"
+	// "github.com/ledongthuc/goterators"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,13 +27,14 @@ type Resolver struct {
 	Server			string `csv:"server"`
 	Server_ip		string `csv:"server_ip"`
 	Domain			string `csv:"domain"`
-	Zonename		string `csv:"zonename"`
-	Recursion		string `csv:"recursion"`
     Location        string `csv:"location"`
     Site            string `csv:"site"`
     Suffix          string `csv:"suffix"`
     Protocol        string `csv:"protocol"`
-    Server_label    string
+    Zonename		string `csv:"zonename"`
+    Query_count_rps string `csv:"query_count_rps"`
+    Zonename_with_recursion string `csv:"zonename_with_recursion"`
+    Query_count_with_recursion string `csv:"query_count_with_recursion_rps"`
 }
 
 
@@ -45,7 +46,6 @@ type prometheus struct {
     metric string
     retries int
     metrics metrics
-
 }
 
 
@@ -58,14 +58,13 @@ type metrics struct {
     recursionAvailable bool
     authenticatedData bool
     checkingDisabled bool
+    polling_rate bool
 }
 
 
 type dns_param struct {
     protocol string
     timeout  int
-    polling_rate_without_recursion int
-    polling_rate_with_recursion int
     dns_servers_path string
     dns_servers_file_md5hash string
 }
@@ -86,7 +85,6 @@ type config struct {
     hostname string
     location string
     securityZone string
-    dublicate bool
 }
 
 
@@ -95,10 +93,11 @@ var (
     Dns_param dns_param
     Log_conf log_conf   
     Config config
-    DnsDict_without_recursion []Resolver
-    DnsDict_with_recursion []Resolver
+    DnsServers []Resolver
     Buffer []promwrite.TimeSeries
     Mu sync.Mutex
+    Polling bool
+    Polling_chan chan struct{}
 )
 
 
@@ -129,24 +128,8 @@ func readDNSServersFromCSV() bool {
 		log.Error("Error Unmarshal file ", Dns_param.dns_servers_path,"| error: ", err)
         return false
 	}
-
-    if Config.dublicate {
-        for i := 0; i < len(dns_list); i++ {
-            dns_list[i].Server_label = fmt.Sprintf("%s%d", dns_list[i].Server, i)
-        }
-    } else {
-        for i := 0; i < len(dns_list); i++ {
-            dns_list[i].Server_label = dns_list[i].Server
-        }
-    }
+    DnsServers = dns_list
     
-    DnsDict_without_recursion = goterators.Filter(dns_list, func(item Resolver) bool {
-		return item.Recursion == "0"
-	  })
-    DnsDict_with_recursion = goterators.Filter(dns_list, func(item Resolver) bool {
-		return item.Recursion == "1"
-	  })
-
     new_md5hash, err := calculateHash(Dns_param.dns_servers_path, md5.New)
     if err != nil {
         log.Error("Error: calculate hash to file '", Dns_param.dns_servers_path, "'. error:", err)
@@ -218,11 +201,12 @@ func checkConfig() {
     if !resolvers_state {
         sl := log.GetLevel()
         log.Info("List of DNS service has been changed")
-        fmt.Println("List of DNS service has been changed")
         log.SetLevel(sl)
         state := readDNSServersFromCSV()
         if !state {
             log.Warn("New List of DNS service is wrong. Use old list of DNS service")
+        } else {
+            createPolling()
         }
     }
 }
@@ -342,12 +326,6 @@ func readConfigWatcher() bool {
         return false
     }
 
-    new_config.dublicate, err = strconv.ParseBool(os.Getenv("DUBLICATE_ALLOW"))
-    if err != nil {
-        log.Error("Error: Variable DUBLICATE_ALLOW is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-
     Config = new_config
     return true
 }
@@ -437,6 +415,12 @@ func readConfigPrometheus() bool {
         return false
     }
 
+    new_prometheus.metrics.polling_rate, err = strconv.ParseBool(os.Getenv("POLLING_RATE"))
+    if err != nil {
+        log.Error("Error: Variable POLLING_RATE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        return false
+    }
+
     Prometheus = new_prometheus
     return true
 }
@@ -455,20 +439,6 @@ func readConfigDNS() bool {
         log.Error("Error: Variable DNS_RESOLVERPATH is wrong check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
         return false
     }
-
-    polling_rate_without_recursion, err := strconv.Atoi(os.Getenv("DNS_POLLING_RATE_NO_RECURSION"))
-    if err != nil {
-        log.Error("Error: Variable DNS_POLLING_RATE_NO_RECURSION is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-    new_dns_param.polling_rate_without_recursion = 1000 / polling_rate_without_recursion
-    
-    polling_rate_with_recursion, err := strconv.Atoi(os.Getenv("DNS_POLLING_RATE_RECURSION"))
-    if err != nil {
-        log.Error("Error: Variable DNS_POLLING_RATE_RECURSION is empty or wrong in ", Config.conf_path, " file. error:", err)
-        return false
-    }
-    new_dns_param.polling_rate_with_recursion = 1000 / polling_rate_with_recursion
 
     new_dns_param.timeout, err = strconv.Atoi(os.Getenv("DNS_TIMEOUT"))
     if err != nil {
@@ -513,7 +483,7 @@ func basicAuth() string {
 }
 
 
-func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr) []promwrite.Label {
+func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling_rate int) []promwrite.Label {
     var label promwrite.Label
 
     labels := []promwrite.Label{
@@ -523,7 +493,7 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr) []promw
         },
         {
             Name: "server",
-            Value: server.Server_label,
+            Value: server.Server,
         },
         {
             Name: "server_ip",
@@ -607,11 +577,16 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr) []promw
         label.Value = strconv.FormatBool(r_header.Truncated)
         labels = append(labels, label)
     }
+    if Prometheus.metrics.polling_rate {
+        label.Name = "polling_rate"
+        label.Value = strconv.FormatBool(r_header.Truncated)
+        labels = append(labels, label)
+    }
     return labels
 }
 
 
-func bufferTimeSeries(server Resolver, tm time.Time, value float64, recursion bool, response_header dns.MsgHdr) {
+func bufferTimeSeries(server Resolver, tm time.Time, value float64, recursion bool, response_header dns.MsgHdr, polling_rate int) {
     Mu.Lock()
 	defer Mu.Unlock()
     if len(Buffer) >= Config.buffer_size {
@@ -620,7 +595,7 @@ func bufferTimeSeries(server Resolver, tm time.Time, value float64, recursion bo
         return
     }
     instance := promwrite.TimeSeries{
-        Labels: collectLabels(server, recursion, response_header),
+        Labels: collectLabels(server, recursion, response_header, polling_rate),
         Sample: promwrite.Sample{
             Time:  tm,
             Value: value,
@@ -651,31 +626,81 @@ func sendVM(items []promwrite.TimeSeries) bool {
 }
 
 
-
-func dnsResolve(server Resolver, recursion bool) {
+func dnsResolve(server Resolver, recursion bool, polling_rate int) {
+    var host string
     c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
     c.Net = Dns_param.protocol
     m := dns.Msg{}
-    host := strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.Suffix + "." + server.Zonename
+    if recursion {
+        host = strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.Suffix + "." + server.Zonename_with_recursion
+    } else {
+        host = strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.Suffix + "." + server.Zonename
+    }
     request_time := time.Now()
     m.SetQuestion(host+".", dns.TypeA)
-    r, t, err := c.Exchange(&m, server.Server+":53")
+    r, t, err := c.Exchange(&m, server.Server_ip+":53")
     if err != nil {
-        log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", error:", err)
-        bufferTimeSeries(server, request_time, float64(t), recursion, dns.MsgHdr{})
+        log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion, ", error:", err)
+        bufferTimeSeries(server, request_time, float64(t), recursion, dns.MsgHdr{}, polling_rate)
     } else {
         if len(r.Answer) == 0 {
-            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr)
+            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion)
+            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr, polling_rate)
         }  else {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
             }
-            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t)
-            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr)
+            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion)
+            bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr, polling_rate)
         }
     }
+}
+
+
+func dnsPolling(server Resolver, recursion bool, stop <-chan struct{}) { 
+    if recursion {
+        polling_rate, _ := strconv.Atoi(server.Query_count_with_recursion)
+        for {
+            select {
+                default:
+                    go dnsResolve(server, true, polling_rate)
+                    time.Sleep(time.Duration(1000 / polling_rate) * time.Millisecond)
+                case <-stop:
+                    return
+            }
+        }
+    } else {
+        polling_rate, _ := strconv.Atoi(server.Query_count_rps)
+        for {
+            select {
+                default:
+                    go dnsResolve(server, false, polling_rate)
+                    time.Sleep(time.Duration(1000 / polling_rate) * time.Millisecond)
+                case <-stop:
+                    return
+            }
+        }
+    }
+}
+
+
+func createPolling() {
+    if Polling {
+        close(Polling_chan)
+        time.Sleep(1 * time.Second)
+    }    
+    Polling_chan = make(chan struct{})
+    Polling = false
+    for _, r := range  DnsServers {
+        if r.Zonename != "" {
+            go dnsPolling(r, false, Polling_chan)
+        }
+        if r.Zonename_with_recursion != "" {
+            go dnsPolling(r, true, Polling_chan)
+        }
+    }
+    Polling = true
 }
 
 
@@ -684,8 +709,7 @@ func main() {
     log.SetLevel(log.InfoLevel)
     log.Info("Frequency DNS cheker start.")
     log.Info("Prometheus info: url:", Prometheus.url , ", auth:", Prometheus.auth, ", username:", Prometheus.username, ", metric_name:", Prometheus.metric)
-    log.Info("DNS info: DNS server count:", )
-    log.Info("DNS info: DNS server count:", len(DnsDict_without_recursion) + len(DnsDict_with_recursion) , ", answer_timeout:", Dns_param.timeout, ", polling_rate_without_recursion:", Dns_param.polling_rate_without_recursion, ", polling_rate_with_recursion:", Dns_param.polling_rate_with_recursion)
+    log.Info("DNS info: DNS server count:", len(DnsServers) , ", answer_timeout:", Dns_param.timeout)
     log.SetLevel(sl)
 
     currentTime := time.Now()
@@ -701,24 +725,9 @@ func main() {
                 checkConfig()
             }
         }
-     }()
+    }()
     
-    go func () {
-        for {
-            for _, r := range DnsDict_without_recursion {
-                go dnsResolve(r, false)
-            }
-            time.Sleep(time.Duration(Dns_param.polling_rate_without_recursion) * time.Millisecond)
-        }
-    }()
-    go func () {
-        for {
-            for _, r := range DnsDict_with_recursion {
-                go dnsResolve(r, true)
-            }
-            time.Sleep(time.Duration(Dns_param.polling_rate_with_recursion) * time.Millisecond)
-        }
-    }()
-
+    createPolling()
+    
     select {}
 }
