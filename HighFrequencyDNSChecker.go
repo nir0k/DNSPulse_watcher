@@ -636,7 +636,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
 
 func dnsResolve(server Resolver, recursion bool, polling_rate int) {
     var host string
-    c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Millisecond}
+    c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
     c.Net = server.Protocol
     m := dns.Msg{}
     if recursion {
