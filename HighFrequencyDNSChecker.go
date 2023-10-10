@@ -578,7 +578,11 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling
     }
     if Prometheus.metrics.polling_rate {
         label.Name = "polling_rate"
-        label.Value = strconv.FormatBool(r_header.Truncated)
+        if recursion {
+            label.Value = server.Query_count_with_recursion
+        } else {
+            label.Value = server.Query_count_rps
+        }
         labels = append(labels, label)
     }
     if Prometheus.metrics.recusrion {
