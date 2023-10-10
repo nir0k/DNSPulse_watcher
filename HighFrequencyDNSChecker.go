@@ -658,6 +658,7 @@ func dnsResolve(server Resolver, recursion bool, polling_rate int) {
             rcode := r.MsgHdr.Rcode
             if r.Answer[0].(*dns.A).A.To4().String() != "1.1.1.1" {
                 rcode = 3841
+                r.MsgHdr.Rcode = 3841
             }
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion)
             bufferTimeSeries(server, request_time, float64(t), recursion, r.MsgHdr, polling_rate)
