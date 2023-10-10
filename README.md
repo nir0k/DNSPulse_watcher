@@ -81,7 +81,7 @@ google_dns_1,8.8.8.8,google.com1,dnsmon,testloc1,testsite1,udp,testzone1,5,testz
  - `server` - DNS Server name. Value type: String
  - `server_ip` - DNS Server IP address. Value type: String
  - `domain` - Domain. Value type: String
- - `suffix` - 
+ - `suffix` - Suffix for create dunamic hostname fo resolve. Hostname create by this rule: `<unixtime with nanoseconds>.<suffix>.<zonename>`
  - `location` - DNS Server Location. Value type: String
  - `site` - DNS Server Site. Value type: String
  - `protocol` - Protocol Used for polling. Value type: String. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
