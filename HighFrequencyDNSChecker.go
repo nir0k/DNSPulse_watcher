@@ -507,10 +507,6 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling
             Value: server.Site,
         },
         {
-            Name: "zonename",
-            Value: server.Zonename,
-        },
-        {
             Name: "watcher",
             Value: Config.hostname,
         },
@@ -531,6 +527,14 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling
             Value: server.Protocol,
         },
     }
+
+    label.Name = "zonename"
+    if recursion {
+        label.Value = server.Zonename_with_recursion
+    } else {
+        label.Value = server.Zonename
+    }
+    labels = append(labels, label)
 
     if Prometheus.metrics.authenticatedData {
         label.Name = "authenticated_data"
