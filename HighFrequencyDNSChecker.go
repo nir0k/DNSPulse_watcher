@@ -636,7 +636,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
 
 func dnsResolve(server Resolver, recursion bool, polling_rate int) {
     var host string
-    c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
+    c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Millisecond}
     c.Net = server.Protocol
     m := dns.Msg{}
     if recursion {
@@ -649,7 +649,7 @@ func dnsResolve(server Resolver, recursion bool, polling_rate int) {
     r, t, err := c.Exchange(&m, server.Server_ip+":53")
     if err != nil {
         log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion, ", error:", err)
-        bufferTimeSeries(server, request_time, float64(t), recursion, dns.MsgHdr{}, polling_rate)
+        bufferTimeSeries(server, request_time, float64(t), recursion, dns.MsgHdr{ Rcode: 3842}, polling_rate)
     } else {
         if len(r.Answer) == 0 {
             log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", polling_rate, "Recursion:", recursion)
