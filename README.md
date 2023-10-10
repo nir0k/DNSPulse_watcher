@@ -33,7 +33,7 @@ go build .
 - 3842 - DNS Server not answer
 
 
-Available parameters in configurations:
+## Available parameters in configurations:
 
 - DNS settings:
   - `DNS_RESOLVERPATH` - Path to file with list of DNS servers
@@ -65,8 +65,10 @@ Available parameters in configurations:
   - `WATCHER_SECURITYZONE` - Watcher security zone
   
 
-CSV structure:
-Delimeter: `,` (comma)
+## CSV structure:
+
+**Delimeter: `,` (comma)**
+
 
 Example CSV:
 ```csv
@@ -74,7 +76,7 @@ server,server_ip,domain,suffix,location,site,protocol,zonename,query_count_rps,z
 google_dns_1,8.8.8.8,google.com1,dnsmon,testloc1,testsite1,udp,testzone1,5,testzone1_r,2
 ```
 
-Field descriptiom:
+### Field descriptiom:
 
  - `server` - DNS Server name. Value type: String
  - `server_ip` - DNS Server IP address. Value type: String
