@@ -62,7 +62,6 @@ type metrics struct {
 
 
 type dns_param struct {
-    protocol string
     timeout  int
     dns_servers_path string
     dns_servers_file_md5hash string
@@ -445,16 +444,6 @@ func readConfigDNS() bool {
         return false
     }
 
-    new_dns_param.protocol = os.Getenv("DNS_PROTOCOL")
-    regexpPattern, err := regexp.Compile("^(udp[4,6]|tcp[4,6]|tcp|udp)$")
-    if err != nil {
-        log.Error("Error compiling regex. err:", err)
-        return false
-    } else if !regexpPattern.MatchString(new_dns_param.protocol) {
-        log.Error("Error: Variable DNS_PROTOCOL is empty or wrong in ", Config.conf_path, " file.")
-        return false
-    }
-
     new_dns_param.dns_servers_file_md5hash = Dns_param.dns_servers_file_md5hash
 
     Dns_param = new_dns_param
@@ -628,7 +617,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
 func dnsResolve(server Resolver, recursion bool, polling_rate int) {
     var host string
     c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
-    c.Net = Dns_param.protocol
+    c.Net = server.Protocol
     m := dns.Msg{}
     if recursion {
         host = strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.Suffix + "." + server.Zonename_with_recursion
