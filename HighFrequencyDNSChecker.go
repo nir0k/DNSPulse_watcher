@@ -23,17 +23,20 @@ import (
 )
 
 type Resolver struct {
-	Server			string `csv:"server"`
-	Server_ip		string `csv:"server_ip"`
-	Domain			string `csv:"domain"`
-    Location        string `csv:"location"`
-    Site            string `csv:"site"`
-    Suffix          string `csv:"suffix"`
-    Protocol        string `csv:"protocol"`
-    Zonename		string `csv:"zonename"`
-    Query_count_rps string `csv:"query_count_rps"`
-    Zonename_with_recursion string `csv:"zonename_with_recursion"`
-    Query_count_with_recursion string `csv:"query_count_with_recursion_rps"`
+	Server			            string `csv:"server"`
+	Server_ip		            string `csv:"server_ip"`
+	Domain			            string `csv:"domain"`
+    Location                    string `csv:"location"`
+    Site                        string `csv:"site"`
+    Server_security_zone        string `csv:"server_security_zone"`
+    Suffix                      string `csv:"suffix"`
+    Protocol                    string `csv:"protocol"`
+    Zonename		            string `csv:"zonename"`
+    Query_count_rps             string `csv:"query_count_rps"`
+    Zonename_with_recursion     string `csv:"zonename_with_recursion"`
+    Query_count_with_recursion  string `csv:"query_count_with_recursion_rps"`
+    Maintenence_mode            string `csv:"maintenence_mode"`
+
 }
 
 
@@ -526,6 +529,14 @@ func collectLabels(server Resolver, recursion bool, r_header dns.MsgHdr, polling
             Name: "protocol",
             Value: server.Protocol,
         },
+        {
+            Name: "server_security_zone",
+            Value: server.Server_security_zone,
+        },
+        {
+            Name: "maintenence_mode",
+            Value: server.Maintenence_mode,
+        },
     }
 
     label.Name = "zonename"
@@ -667,8 +678,19 @@ func dnsResolve(server Resolver, recursion bool, polling_rate int) {
 }
 
 
-func dnsPolling(server Resolver, recursion bool, stop <-chan struct{}) { 
-    if recursion {
+func dnsPolling(server Resolver, recursion bool, stop <-chan struct{}) {
+    if server.Maintenence_mode == "true" {
+        polling_rate := 1
+        for {
+            select {
+                default:
+                    go bufferTimeSeries(server, time.Now(), float64(0), recursion, dns.MsgHdr{ Rcode: 0}, polling_rate)
+                    time.Sleep(time.Duration(1000 / polling_rate) * time.Millisecond)
+                case <-stop:
+                    return
+            }
+        }
+    } else if recursion {
         polling_rate, _ := strconv.Atoi(server.Query_count_with_recursion)
         for {
             select {
