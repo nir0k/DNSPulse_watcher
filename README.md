@@ -74,18 +74,21 @@ go build .
 
 Example CSV:
 ```csv
-server,server_ip,domain,suffix,location,site,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
-google_dns_1,8.8.8.8,google.com1,dnsmon,testloc1,testsite1,udp,testzone1,5,testzone1_r,2
+server,server_ip,maintenence_mode,domain,suffix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
+google_dns_1,8.8.8.8,false,google.com1,dnsmon,testloc1,testsite1,srv_sec-zone1,udp,testzone1,5,testzone1_r,2
+
 ```
 
 ### Field descriptiom:
 
  - `server` - DNS Server name. Value type: String
  - `server_ip` - DNS Server IP address. Value type: String
+ - `maintenence_mode` - Enable maintanece mode. Possible value: true or false
  - `domain` - Domain. Value type: String
  - `suffix` - Suffix for create dunamic hostname fo resolve. Hostname create by this rule: `<unixtime with nanoseconds>.<suffix>.<zonename>`
  - `location` - DNS Server Location. Value type: String
  - `site` - DNS Server Site. Value type: String
+ - `server_security_zone` - DNS Server secyrity zone. Value type: string
  - `protocol` - Protocol Used for polling. Value type: String. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
  - `zonename` - DNS Zonename without recusrion. Value type: String
  - `query_count_rps` - Count request per secconds for DSN server polling without recursion. Value type: Intenger
