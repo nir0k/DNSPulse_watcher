@@ -35,7 +35,7 @@ type Resolver struct {
     Query_count_rps             string `csv:"query_count_rps"`
     Zonename_with_recursion     string `csv:"zonename_with_recursion"`
     Query_count_with_recursion  string `csv:"query_count_with_recursion_rps"`
-    Maintenence_mode            string `csv:"maintenence_mode"`
+    Maintenence_mode            string `csv:"maintenance_mode"`
 
 }
 
