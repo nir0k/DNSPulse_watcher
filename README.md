@@ -83,7 +83,7 @@ google_dns_1,8.8.8.8,false,google.com1,dnsmon,testloc1,testsite1,srv_sec-zone1,u
 
  - `server` - DNS Server name. Value type: String
  - `server_ip` - DNS Server IP address. Value type: String
- - `maintenence_mode` - Enable maintanece mode. Possible value: true or false
+ - `maintenance_mode` - Enable maintenance mode. Possible value: true or false
  - `domain` - Domain. Value type: String
  - `suffix` - Suffix for create dunamic hostname fo resolve. Hostname create by this rule: `<unixtime with nanoseconds>.<suffix>.<zonename>`
  - `location` - DNS Server Location. Value type: String
