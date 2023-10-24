@@ -38,6 +38,8 @@ go build .
 - DNS settings:
   - `DNS_RESOLVERPATH` - Path to file with list of DNS servers
   - `DNS_TIMEOUT` - DNS answer timeout in seconds
+  - `DELIMETER` - Delimeter for CSV-file fields 
+  - `DELIMETER_FOR_ADDITIONAL_PARAM` - Delimeter for value in fiels 'zonename', 'query_count_rps', 'zonename_with_recursion' and 'query_count_with_recursion_rps' in CSV file
 
 - Prometheus settings:
   - `PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write
@@ -76,7 +78,7 @@ Example CSV:
 ```csv
 server,server_ip,maintenence_mode,domain,suffix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
 google_dns_1,8.8.8.8,false,google.com1,dnsmon,testloc1,testsite1,srv_sec-zone1,udp,testzone1,5,testzone1_r,2
-
+google_dns_2,8.8.4.4,false,google.com2,dnsmon,testloc2,testsite2,srv_sec-zone2,udp,testzone7&testzone10,5&4,testzone7_r&testzone100_4,2&3
 ```
 
 ### Field descriptiom:
