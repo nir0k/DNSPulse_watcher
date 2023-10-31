@@ -753,6 +753,12 @@ func sendVM(items []promwrite.TimeSeries) bool {
 
 
 func dnsResolve(server Resolver) {
+    request_time := time.Now()
+    if server.maintenance_mode{
+        log.Debug("Server:", server, ",TC: false, host:, Rcode: 0, Protocol:, r_time:", request_time, ", r_duration: 0, polling rate:", server.query_count_rps, ", Recursion:")
+        bufferTimeSeries(server, request_time, float64(0), dns.MsgHdr{ Rcode: 0})
+        return
+    }
     var host string
     c := dns.Client{Timeout: time.Duration(Dns_param.timeout) * time.Second}
     c.Net = server.protocol
@@ -762,15 +768,15 @@ func dnsResolve(server Resolver) {
     } else {
         host = strconv.FormatInt(time.Now().UnixNano(), 10) + "." + server.prefix + "." + server.zonename
     }
-    request_time := time.Now()
     m.SetQuestion(host+".", dns.TypeA)
+    log.Debug("m.SetQuestion", m)
     r, t, err := c.Exchange(&m, server.server_ip+":53")
     if err != nil {
-        log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", server.query_count_rps, "Recursion:", server.recursion, ", error:", err)
+        log.Debug("Server:", server, ",TC: false", ", host:", host, ", Rcode: 3842, Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", polling rate:", server.query_count_rps, ", Recursion:", server.recursion, ", error:", err)
         bufferTimeSeries(server, request_time, float64(t), dns.MsgHdr{ Rcode: 3842})
     } else {
         if len(r.Answer) == 0 {
-            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", server.query_count_rps, "Recursion:", server.recursion)
+            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", r.MsgHdr.Rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", polling rate:", server.query_count_rps, ", Recursion:", server.recursion)
             bufferTimeSeries(server, request_time, float64(t), r.MsgHdr)
         }  else {
             rcode := r.MsgHdr.Rcode
@@ -778,7 +784,7 @@ func dnsResolve(server Resolver) {
                 rcode = 3841
                 r.MsgHdr.Rcode = 3841
             }
-            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, "polling rate:", server.query_count_rps, "Recursion:", server.recursion)
+            log.Debug("Server:", server, ", TC:", r.MsgHdr.Truncated, ", host:", host, ", Rcode:", rcode, ", Protocol:", c.Net, ", r_time:", request_time.Format("2006/01/02 03:04:05.000"), ", r_duration:", t, ", polling rate:", server.query_count_rps, ", Recursion:", server.recursion)
             bufferTimeSeries(server, request_time, float64(t), r.MsgHdr)
         }
     }
