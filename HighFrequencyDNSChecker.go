@@ -37,7 +37,7 @@ type Csv struct {
     Query_count_rps             string `csv:"query_count_rps"`
     Zonename_with_recursion     string `csv:"zonename_with_recursion"`
     Query_count_with_recursion  string `csv:"query_count_with_recursion_rps"`
-    Maintenance_mode            string `csv:"maintenance_mode"`
+    Service_mode            string `csv:"service_mode"`
 
 }
 
@@ -53,7 +53,7 @@ type Resolver struct {
     zonename string
     recursion bool
     query_count_rps int
-    maintenance_mode bool
+    service_mode bool
 }
 
 
@@ -122,9 +122,9 @@ var (
 )
 
 
-func init() {
+func setup() {
     Config.conf_path = ".env"
-    state := readConfig()
+    state := readConfig(Config.conf_path)
     if !state {
         fmt.Println("Error load configuration parametrs. check config in .env files")
         log.Fatal("Error load configuration parametrs. check config in .env files")
@@ -143,9 +143,9 @@ func parseZones(records []Csv) ([]Resolver, error) {
         
         zoneNames :=  strings.Split(record.Zonename, Dns_param.delimeter_for_additional_field)
         queryRPSs := strings.Split(record.Query_count_rps, Dns_param.delimeter_for_additional_field)
-        mm_mode, err := strconv.ParseBool(record.Maintenance_mode)
+        mm_mode, err := strconv.ParseBool(record.Service_mode)
         if err != nil {
-            log.Warning("Warning: Error parse maitanence mode value for server: '", record.Server, "', value 'maintenance_mode': ", record.Maintenance_mode, "err:", err)
+            log.Warning("Warning: Error parse server mode value for server: '", record.Server, "', value 'service_mode': ", record.Service_mode, "err:", err)
             mm_mode = false
         }
         for i, zonename := range zoneNames {
@@ -154,7 +154,7 @@ func parseZones(records []Csv) ([]Resolver, error) {
             }
             queryRPSInt, err := strconv.Atoi(queryRPSs[i])
             if err != nil {
-                log.Warning("Warning: Error parse maitanence mode value for server: '", record.Server, "', value 'query_count_rps': ", record.Query_count_rps, "err:", err)
+                log.Warning("Warning: Error parse query count rps value for server: '", record.Server, "', value 'query_count_rps': ", record.Query_count_rps, "err:", err)
                 queryRPSInt = 5
             }
             resolver := Resolver{
@@ -169,7 +169,7 @@ func parseZones(records []Csv) ([]Resolver, error) {
                 zonename: zonename,
                 recursion: false,
                 query_count_rps: queryRPSInt,
-                maintenance_mode: mm_mode,
+                service_mode: mm_mode,
             }
             resolvers = append(resolvers, resolver)
         }
@@ -182,7 +182,7 @@ func parseZones(records []Csv) ([]Resolver, error) {
             }
             queryRPSInt, err := strconv.Atoi(queryRPSsRecursion[i])
             if err != nil {
-                log.Warning("Warning: Error parse maitanence mode value for server: '", record.Server, "', value 'query_count_rps': ", record.Query_count_rps, "err:", err)
+                log.Warning("Warning: Error parse query count rps value for server: '", record.Server, "', value 'query_count_rps': ", record.Query_count_rps, "err:", err)
                 queryRPSInt = 2
             }
             resolver := Resolver{
@@ -197,7 +197,7 @@ func parseZones(records []Csv) ([]Resolver, error) {
                 zonename: zonename,
                 recursion: true,
                 query_count_rps: queryRPSInt,
-                maintenance_mode: mm_mode,
+                service_mode: mm_mode,
             }
             resolvers = append(resolvers, resolver)
         }
@@ -288,7 +288,7 @@ func checkConfig() {
         log.Info("Config has been changed")
         fmt.Println("Config has been changed")
         log.SetLevel(sl)
-        state := readConfig()
+        state := readConfig(Config.conf_path)
         if !state {
             log.Warn("New config in '", Config.conf_path, "' is wrong. Use old config")
         } else {
@@ -312,9 +312,9 @@ func checkConfig() {
 }
 
 
-func readConfig() bool {
-
-    err := godotenv.Overload()
+func readConfig(filePath string) bool {
+    
+    err := godotenv.Load(filePath)
     if err != nil {
         fmt.Println("Error loading ", Config.conf_path, " file", err)
         log.Error("Error loading ", Config.conf_path, " file", err)
@@ -325,21 +325,22 @@ func readConfig() bool {
         return false
     }
 
-    if !readConfigWatcher() {
+    if !readConfigWatcher(filePath) {
         return false
     }
 
-    if !readConfigPrometheus() {
+    if !readConfigPrometheus(filePath) {
         return false
     }
 
-    if !readConfigDNS() {
+    if !readConfigDNS(filePath) {
         return false
     }
 
     
     return true
 }
+
 
 func readConfigLog() bool {
     var new_log_conf log_conf
@@ -377,7 +378,7 @@ func readConfigLog() bool {
 }
 
 
-func readConfigWatcher() bool {
+func readConfigWatcher(filePath string) bool {
     var (
         new_config config
         err error
@@ -392,31 +393,31 @@ func readConfigWatcher() bool {
 	}
     new_config.buffer_size, err = strconv.Atoi(os.Getenv("BUFFER_SIZE"))
     if err != nil {
-        log.Error("Warning: Variable BUFFER_SIZE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Warning: Variable BUFFER_SIZE is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
-    new_config.conf_md5hash, err = calculateHash(Config.conf_path, md5.New)
+    new_config.conf_md5hash, err = calculateHash(filePath, md5.New)
     if err != nil {
-        log.Error("Error: calculate hash to file '", Config.conf_path, "'")
+        log.Error("Error: calculate hash to file '", filePath, "'")
         return false
     }
 
     new_config.check_interval, err = strconv.Atoi(os.Getenv("CONF_CHECK_INTERVAL"))
     if err != nil {
-        log.Error("Warning: Variable CONF_CHECK_INTERVAL is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Warning: Variable CONF_CHECK_INTERVAL is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
     new_config.location = os.Getenv("WATCHER_LOCATION")
     if len(new_config.location) == 0 {
-        log.Error("Error: Variable WATCHER_LOCATION is required in ", Config.conf_path, " file. Please add this variable with value")
+        log.Error("Error: Variable WATCHER_LOCATION is required in ", filePath, " file. Please add this variable with value")
         return false
     }
 
     new_config.securityZone = os.Getenv("WATCHER_SECURITYZONE")
     if len(new_config.securityZone) == 0 {
-        log.Error("Error: Variable WATCHER_SECURITYZONE is required in ", Config.conf_path, " file. Please add this variable with value")
+        log.Error("Error: Variable WATCHER_SECURITYZONE is required in ", filePath, " file. Please add this variable with value")
         return false
     }
 
@@ -431,7 +432,7 @@ func readConfigWatcher() bool {
 }
 
 
-func readConfigPrometheus() bool {
+func readConfigPrometheus(filePath string) bool {
     var (
         new_prometheus prometheus
         err error
@@ -439,91 +440,91 @@ func readConfigPrometheus() bool {
 
     new_prometheus.url = os.Getenv("PROM_URL")
     if !isValidURL(new_prometheus.url) {
-        log.Error("Error: Variable PROM_URL is required in ", Config.conf_path, " file. Please add this variable with value")
+        log.Error("Error: Variable PROM_URL is required in ", filePath, " file. Please add this variable with value")
         return false
     }
 
     new_prometheus.metric = os.Getenv("PROM_METRIC")
     if !isAlphaNumericWithDashOrUnderscore(new_prometheus.metric) {
-        log.Error("Error: Variable PROM_METRIC is empty or wrong in ", Config.conf_path, " file.")
+        log.Error("Error: Variable PROM_METRIC is empty or wrong in ", filePath, " file.")
         return false
     }
 
     new_prometheus.retries, err = strconv.Atoi(os.Getenv("PROM_RETRIES"))
     if err != nil {
-        log.Error("Error: Variable PROM_RETRIES is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable PROM_RETRIES is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
     new_prometheus.auth, err = strconv.ParseBool(os.Getenv("PROM_AUTH"))
     if err != nil {
-        log.Error("Error: Variable PROM_AUTH is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable PROM_AUTH is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
     if new_prometheus.auth {
         new_prometheus.username = os.Getenv("PROM_USER")
         if len(new_prometheus.username) == 0 {
-            log.Error("Error: Variable PROM_USER is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            log.Error("Error: Variable PROM_USER is required in ", filePath, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
             return false
         }
         new_prometheus.password = os.Getenv("PROM_PASS")
         if len(new_prometheus.password) == 0 {
-            log.Error("Error: Variable PROM_PASS is required in ", Config.conf_path, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
+            log.Error("Error: Variable PROM_PASS is required in ", filePath, " file or variable PROM_AUTH must equals to 'false'. Please add this variable with value")
             return false
         }
     } 
 
     new_prometheus.metrics.opscodes, err = strconv.ParseBool(os.Getenv("OPCODES"))
     if err != nil {
-        log.Error("Error: Variable OPCODES is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable OPCODES is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.authoritative, err = strconv.ParseBool(os.Getenv("AUTHORITATIVE"))
     if err != nil {
-        log.Error("Error: Variable AUTHORITATIVE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable AUTHORITATIVE is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.truncated, err = strconv.ParseBool(os.Getenv("TRUNCATED"))
     if err != nil {
-        log.Error("Error: Variable TRUNCATED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable TRUNCATED is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.rcode, err = strconv.ParseBool(os.Getenv("RCODE"))
     if err != nil {
-        log.Error("Error: Variable RCODE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable RCODE is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.recursionDesired, err = strconv.ParseBool(os.Getenv("RECURSION_DESIRED"))
     if err != nil {
-        log.Error("Error: Variable RECURSION_DESIRED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable RECURSION_DESIRED is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.recursionAvailable, err = strconv.ParseBool(os.Getenv("RECURSION_AVAILABLE"))
     if err != nil {
-        log.Error("Error: Variable RECURSION_AVAILABLE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable RECURSION_AVAILABLE is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.authenticatedData, err = strconv.ParseBool(os.Getenv("AUTHENTICATE_DATA"))
     if err != nil {
-        log.Error("Error: Variable AUTHENTICATE_DATA is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable AUTHENTICATE_DATA is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
     new_prometheus.metrics.checkingDisabled, err = strconv.ParseBool(os.Getenv("CHECKING_DISABLED"))
     if err != nil {
-        log.Error("Error: Variable CHECKING_DISABLED is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable CHECKING_DISABLED is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
     new_prometheus.metrics.polling_rate, err = strconv.ParseBool(os.Getenv("POLLING_RATE"))
     if err != nil {
-        log.Error("Error: Variable POLLING_RATE is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable POLLING_RATE is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
     new_prometheus.metrics.recusrion, err = strconv.ParseBool(os.Getenv("RECURSION"))
     if err != nil {
-        log.Error("Error: Variable RECURSION is empty or wrong in ", Config.conf_path, " file. error:", err)
+        log.Error("Error: Variable RECURSION is empty or wrong in ", filePath, " file. error:", err)
         return false
     }
 
@@ -532,7 +533,7 @@ func readConfigPrometheus() bool {
 }
 
 
-func readConfigDNS() bool {
+func readConfigDNS(filePath string) bool {
     var (
         new_dns_param dns_param
         err error
@@ -541,14 +542,14 @@ func readConfigDNS() bool {
     new_dns_param.dns_servers_path = os.Getenv("DNS_RESOLVERPATH")
     validRPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
     if !validRPathRegex.MatchString(new_dns_param.dns_servers_path) {
-        fmt.Println("Error: Variable DNS_RESOLVERPATH is wrong check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
-        log.Error("Error: Variable DNS_RESOLVERPATH is wrong check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        fmt.Println("Error: Variable DNS_RESOLVERPATH is wrong check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        log.Error("Error: Variable DNS_RESOLVERPATH is wrong check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
         return false
     }
 
     new_dns_param.timeout, err = strconv.Atoi(os.Getenv("DNS_TIMEOUT"))
     if err != nil {
-        log.Error("Error: Variable DNS_TIMEOUT is empty or wrong in ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.error:", err)
+        log.Error("Error: Variable DNS_TIMEOUT is empty or wrong in ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.error:", err)
         return false
     }
 
@@ -556,16 +557,16 @@ func readConfigDNS() bool {
     if len(delimeter) == 1 {
         new_dns_param.delimeter = rune(delimeter[0])
     } else {
-        log.Error("Error: Variable DELIMETER is not a single character. Check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
-        fmt.Println("Error: Variable DELIMETER is not a single character. Check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        log.Error("Error: Variable DELIMETER is not a single character. Check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        fmt.Println("Error: Variable DELIMETER is not a single character. Check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
 
         return false
     }
 
     new_dns_param.delimeter_for_additional_field = os.Getenv("DELIMETER_FOR_ADDITIONAL_PARAM")
     if len(new_dns_param.delimeter_for_additional_field) < 1 {
-        fmt.Println("Error: Variable DELIMETER_FOR_ADDITIONAL_PARAM is wrong check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
-        log.Error("Error: Variable DELIMETER_FOR_ADDITIONAL_PARAM is wrong check ", Config.conf_path, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        fmt.Println("Error: Variable DELIMETER_FOR_ADDITIONAL_PARAM is wrong check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
+        log.Error("Error: Variable DELIMETER_FOR_ADDITIONAL_PARAM is wrong check ", filePath, " file. Path:'", new_dns_param.dns_servers_path, "'.")
         return false
     }
 
@@ -649,8 +650,8 @@ func collectLabels(server Resolver, r_header dns.MsgHdr) []promwrite.Label {
             Value: server.server_security_zone,
         },
         {
-            Name: "maintenance_mode",
-            Value: strconv.FormatBool(server.maintenance_mode),
+            Name: "service_mode",
+            Value: strconv.FormatBool(server.service_mode),
         },
     }
 
@@ -754,7 +755,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
 
 func dnsResolve(server Resolver) {
     request_time := time.Now()
-    if server.maintenance_mode{
+    if server.service_mode{
         log.Debug("Server:", server, ",TC: false, host:, Rcode: 0, Protocol:, r_time:", request_time, ", r_duration: 0, polling rate:", server.query_count_rps, ", Recursion:")
         bufferTimeSeries(server, request_time, float64(0), dns.MsgHdr{ Rcode: 0})
         return
@@ -792,7 +793,7 @@ func dnsResolve(server Resolver) {
 
 
 func dnsPolling(server Resolver, stop <-chan struct{}) {
-    if server.maintenance_mode {
+    if server.service_mode {
         server.query_count_rps = 1
     }
     for {
@@ -822,6 +823,7 @@ func createPolling() {
 
 
 func main() {
+    setup()
     sl := log.GetLevel()
     log.SetLevel(log.InfoLevel)
     log.Info("Frequency DNS cheker start.")
