@@ -76,7 +76,7 @@ go build .
 
 Example CSV:
 ```csv
-server,server_ip,maintenence_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
+server,server_ip,service_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
 google_dns_1,8.8.8.8,false,google.com1,dnsmon,testloc1,testsite1,srv_sec-zone1,udp,testzone1,5,testzone1_r,2
 google_dns_2,8.8.4.4,false,google.com2,dnsmon,testloc2,testsite2,srv_sec-zone2,udp,testzone7&testzone10,5&4,testzone7_r&testzone100_4,2&3
 ```
@@ -85,7 +85,7 @@ google_dns_2,8.8.4.4,false,google.com2,dnsmon,testloc2,testsite2,srv_sec-zone2,u
 
  - `server` - DNS Server name. Value type: String
  - `server_ip` - DNS Server IP address. Value type: String
- - `maintenance_mode` - Enable maintenance mode. Possible value: true or false
+ - `service_mode` - Enable service mode. Possible value: true or false
  - `domain` - Domain. Value type: String
  - `prefix` - Suffix for create dunamic hostname fo resolve. Hostname create by this rule: `<unixtime with nanoseconds>.<suffix>.<zonename>`
  - `location` - DNS Server Location. Value type: String
