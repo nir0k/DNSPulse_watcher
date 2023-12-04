@@ -1,6 +1,6 @@
 #=======================================================================================================
 # DNS settings
-#=======================================================================================================
+
 # Path to file with list of DNS servers
 DNS_RESOLVERPATH=dns_servers.csv
 # DNS answer timeout in seconds
@@ -13,7 +13,7 @@ DELIMETER_FOR_ADDITIONAL_PARAM=&
 
 #=======================================================================================================
 # Prometheus
-#=======================================================================================================
+
 # Prometheus remote write url. example: http://prometheus:8428/api/v1/write
 PROM_URL=http://prometheus:8428/api/v1/write
 # Prometheus metric name
@@ -52,11 +52,7 @@ RECURSION=true
 
 #=======================================================================================================
 # Watcher config
-#=======================================================================================================
-# Path to log file
-LOG_FILE=high_frequency_dns_mon.log
-# Minimal severity level for logging. Possible values: debug, info, warning, error, fatal (default: warning)
-LOG_LEVEL=debug
+
 # Interval check changes in config in minutes
 CONF_CHECK_INTERVAL=1
 # Timeseries buffer size for sent to prometheus
@@ -65,3 +61,25 @@ BUFFER_SIZE=2
 WATCHER_LOCATION=K
 # Watcher security zone
 WATCHER_SECURITYZONE=PROD
+
+#=======================================================================================================
+# Watcher web config
+
+# Lisenning port
+WATCHER_WEB_PORT=8080
+# User
+WATCHER_WEB_USER=user
+# Password
+WATCHER_WEB_PASSWORD=Password
+
+#=======================================================================================================
+# Logging
+
+# Path to application log file
+LOG_FILE=high_frequency_dns_mon.log
+# Minimal severity level for application logging. Possible values: debug, info, warning, error, fatal (default: warning)
+LOG_LEVEL=warning
+# Path to auth log file
+WATCHER_WEB_AUTH_LOG_FILE=high_frequency_dns_mon_auth.log
+# Minimal severity level for auth logging. Possible values: debug, info, warning, error, fatal (default: warning)
+WATCHER_WEB_AUTH_LOG_LEVEL=warning

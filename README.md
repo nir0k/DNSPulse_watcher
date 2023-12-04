@@ -9,13 +9,14 @@ Key Program Features:
 - Continuous Monitoring: Operates endlessly in a loop for uninterrupted monitoring.
 - Records resolved server names, resolve time, rcode, protocol, truncated flag and timestamps in Prometheus for historical analysis.
 - Runs in an infinite loop for continuous monitoring.
+- Web access to edit configuration
 
 ### Install
 **requred go 1.21.1**
 ```bash
 git clone https://github.com/nir0k/HighFrequencyDNSChecker.git
 cd HighFrequencyDNSChecker
-go build .
+make build
 ```
 
 ### Prepare
@@ -25,12 +26,12 @@ go build .
 
 ### Use
 ```bash
-./HighFrequencyDNSChecker
+./High_Frequency_DNS_Monitoring-linux-amd64
 ```
 
 ### Custom Rcode:
-- 3841 - Resolved IP-address not equals 1.1.1.1
-- 3842 - DNS Server not answer
+- 30 - Resolved IP-address not equals 1.1.1.1
+- 50 - DNS Server not answer
 
 
 ## Available parameters in configurations:
@@ -61,13 +62,22 @@ go build .
     - `RECURSION` - Recursion. Request with reqursion or not. Possible value: true or false
 
 - Watcher settings:
-  - `LOG_FILE` - Path to log file
-  - `LOG_LEVEL` - Minimal severity level for logging. Possible values: debug, info, warning, error, fatal (default: warning)
   - `CONF_CHECK_INTERVAL` - Interval check changes in config in minutes
   - `BUFFER_SIZE` - Timeseries buffer size for sent to prometheus
   - `WATCHER_LOCATION` - Watcher location
   - `WATCHER_SECURITYZONE` - Watcher security zone
-  
+
+- Web-Server settings:
+  - `WATCHER_WEB_PORT` - Lisenning port
+  - `WATCHER_WEB_USER` - Username to acces into web
+  - `WATCHER_WEB_PASSWORD` - Password to acces into web
+
+- Ligging settings:
+  - `LOG_FILE` - Path to application log file
+  - `LOG_LEVEL` - Minimal severity level for application logging. Possible values: debug, info, warning, error, fatal (default: warning)
+  - `WATCHER_WEB_AUTH_LOG_FILE` - Path to auth log file
+  - `WATCHER_WEB_AUTH_LOG_LEVEL` - Minimal severity level for auth logging. Possible values: debug, info, warning, error, fatal (default: warning)
+
 
 ## CSV structure:
 
