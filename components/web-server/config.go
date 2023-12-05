@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+    "github.com/nir0k/HighFrequencyDNSChecker/components/log"
 )
 
 
@@ -64,6 +65,11 @@ func WatchForPortChanges(done *chan bool) {
 
 
 func StartServer(port string, done chan bool) {
+    if !CheckPortAvailability(port) {
+        log.AppLog.Error("Port is already in use. Cannot start the web server. Port:", port)
+        return
+    }
+
     http.HandleFunc("/", authMiddleware(homeHandler))
     http.HandleFunc("/csv", authMiddleware(csvHandler))
     http.HandleFunc("/csv/upload", authMiddleware(uploadCSVHandler))

@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/nir0k/HighFrequencyDNSChecker/components/watcher"
 )
 
 
@@ -37,7 +39,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func csvHandler(w http.ResponseWriter, r *http.Request) {
-    csvFile := "dns_servers.csv"
+    // csvFile := "dns_servers.csv"
+    csvFile := watcher.Dns_param.Dns_servers_path
     var editingRow = -1
 
     switch r.Method {
