@@ -66,12 +66,6 @@ type dns_param struct {
 }
 
 
-type log_conf struct {
-    Log_path string
-    Log_level string
-}
-
-
 type config struct {
     Conf_path string
     Conf_md5hash string

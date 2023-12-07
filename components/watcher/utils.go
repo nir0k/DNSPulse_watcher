@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"sync"
-	// log "github.com/sirupsen/logrus"
     "github.com/nir0k/HighFrequencyDNSChecker/components/log"
 )
 

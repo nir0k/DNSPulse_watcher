@@ -8,7 +8,6 @@ import (
 
 	"github.com/castai/promwrite"
 	"github.com/miekg/dns"
-	// log "github.com/sirupsen/logrus"
     "github.com/nir0k/HighFrequencyDNSChecker/components/log"
 )
 

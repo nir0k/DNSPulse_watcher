@@ -12,14 +12,15 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	// log "github.com/sirupsen/logrus"
+    
 	"github.com/nir0k/HighFrequencyDNSChecker/components/log"
 )
 
 
 var (
     Dns_param dns_param
-    Log_conf log_conf   
+    Log_conf log.Log_conf
+    AuthLog_conf log.Log_conf
     Config config
     DnsServers []Resolver
 )
@@ -90,7 +91,11 @@ func ReadConfig(filePath string) bool {
         return false
     }
 
-    if !readConfigLog() {
+    if !readConfigLog(filePath) {
+        return false
+    }
+
+    if !readConfigAuthLog(filePath) {
         return false
     }
 
@@ -110,8 +115,11 @@ func ReadConfig(filePath string) bool {
 }
 
 
-func readConfigLog() bool {
-    var new_log_conf log_conf
+func readConfigLog(filePath string) bool {
+    var (
+        new_log_conf log.Log_conf
+        err error
+    )
 
     new_log_conf.Log_path = os.Getenv("LOG_FILE")
     validPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
@@ -132,11 +140,79 @@ func readConfigLog() bool {
         default: {
             logrus.Error("Error min log severity '", new_log_conf.Log_level, "'.")
             return false
-        } 
+        }
     }
-    log.InitAppLogger(new_log_conf.Log_path, notifyLevel)
+    new_log_conf.Log_max_age, err = strconv.Atoi(os.Getenv("LOG_MAX_AGE"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable LOG_MAX_AGE is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+    new_log_conf.Log_max_size, err = strconv.Atoi(os.Getenv("LOG_MAX_SIZE"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable LOG_MAX_SIZE is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+    new_log_conf.Log_max_files, err = strconv.Atoi(os.Getenv("LOG_MAX_FILES"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable LOG_MAX_FILES is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+
+
+    log.InitAppLogger(new_log_conf, notifyLevel)
 
     Log_conf = new_log_conf
+    return true
+}
+
+
+func readConfigAuthLog(filePath string) bool {
+    var (
+        new_authlog_conf log.Log_conf
+        err error
+    )
+
+    new_authlog_conf.Log_path = os.Getenv("WATCHER_WEB_AUTH_LOG_FILE")
+    validPathRegex := regexp.MustCompile("^[a-zA-Z0-9-_/.]+$")
+    if !validPathRegex.MatchString(new_authlog_conf.Log_path) {
+        fmt.Println("Error create/open log file ", new_authlog_conf.Log_path)
+        log.AppLog.Error("Error create/open log file '", new_authlog_conf.Log_path, "'.")
+        return false
+    }
+
+    new_authlog_conf.Log_level = os.Getenv("WATCHER_WEB_AUTH_LOG_LEVEL")
+    notifyLevel := logrus.InfoLevel
+    switch new_authlog_conf.Log_level {
+        case "debug": notifyLevel = logrus.DebugLevel
+        case "info": notifyLevel = logrus.InfoLevel
+        case "warning": notifyLevel = logrus.WarnLevel
+        case "error": notifyLevel = logrus.ErrorLevel
+        case "fatal": notifyLevel = logrus.FatalLevel
+        default: {
+            logrus.Error("Error min log severity '", new_authlog_conf.Log_level, "'.")
+            return false
+        }
+    }
+    new_authlog_conf.Log_max_age, err = strconv.Atoi(os.Getenv("WATCHER_WEB_AUTH_LOG_MAX_AGE"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable WATCHER_WEB_AUTH_LOG_MAX_AGE is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+    new_authlog_conf.Log_max_size, err = strconv.Atoi(os.Getenv("WATCHER_WEB_AUTH_LOG_MAX_SIZE"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable WATCHER_WEB_AUTH_LOG_MAX_SIZE is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+    new_authlog_conf.Log_max_files, err = strconv.Atoi(os.Getenv("WATCHER_WEB_AUTH_LOG_MAX_FILES"))
+    if err != nil {
+        log.AppLog.Error("Warning: Variable WATCHER_WEB_AUTH_LOG_MAX_FILES is empty or wrong in ", filePath, " file. error:", err)
+        return false
+    }
+
+
+    log.AuthLog = log.InitAuthLog(new_authlog_conf, notifyLevel)
+
+    AuthLog_conf = new_authlog_conf
     return true
 }
 
@@ -359,7 +435,11 @@ func readDNSServersFromCSV() bool {
         return false
 	}
     
-    DnsServers, _ = parseZones(dns_list)
+    DnsServers, err = parseZones(dns_list)
+    if err != nil {
+        log.AppLog.Error("Error parse zones '", Dns_param.Dns_servers_path, "'. error:", err)
+        return false
+    }
     
     new_md5hash, err := calculateHash(Dns_param.Dns_servers_path, md5.New)
     if err != nil {

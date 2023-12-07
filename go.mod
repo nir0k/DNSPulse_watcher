@@ -4,10 +4,12 @@ go 1.21.1
 
 require (
 	github.com/castai/promwrite v0.5.0
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gocarina/gocsv v0.0.0-20230616125104-99d496ca653d
 	github.com/joho/godotenv v1.5.1
 	github.com/miekg/dns v1.1.56
 	github.com/sirupsen/logrus v1.9.3
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

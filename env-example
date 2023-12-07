@@ -66,20 +66,37 @@ WATCHER_SECURITYZONE=PROD
 # Watcher web config
 
 # Lisenning port
-WATCHER_WEB_PORT=8080
+WATCHER_WEB_PORT=8081
 # User
 WATCHER_WEB_USER=user
 # Password
-WATCHER_WEB_PASSWORD=Password
+WATCHER_WEB_PASSWORD=Samsung1
 
 #=======================================================================================================
-# Logging
+# Logging Watcher
 
 # Path to application log file
 LOG_FILE=high_frequency_dns_mon.log
 # Minimal severity level for application logging. Possible values: debug, info, warning, error, fatal (default: warning)
 LOG_LEVEL=warning
+
+# The maximum age of a log file to retain. (in days)
+LOG_MAX_AGE=30
+# The maximum size of a log file before it gets rotated. (in Megabytes (MB))
+LOG_MAX_SIZE=10
+# The maximum number of old log files to retain.
+LOG_MAX_FILES=10
+
+#=======================================================================================================
+# Logging Watcher
+
 # Path to auth log file
 WATCHER_WEB_AUTH_LOG_FILE=high_frequency_dns_mon_auth.log
 # Minimal severity level for auth logging. Possible values: debug, info, warning, error, fatal (default: warning)
 WATCHER_WEB_AUTH_LOG_LEVEL=warning
+# The maximum age of a log file to retain. (in days)
+WATCHER_WEB_AUTH_LOG_MAX_AGE=30
+# The maximum size of a log file before it gets rotated. (in Megabytes (MB))
+WATCHER_WEB_AUTH_LOG_MAX_SIZE=10
+# The maximum number of old log files to retain.
+WATCHER_WEB_AUTH_LOG_MAX_FILES=10

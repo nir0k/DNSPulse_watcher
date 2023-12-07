@@ -70,10 +70,13 @@ func StartServer(port string, done chan bool) {
         return
     }
 
+    http.HandleFunc("/login", loginHandler)
     http.HandleFunc("/", authMiddleware(homeHandler))
     http.HandleFunc("/csv", authMiddleware(csvHandler))
     http.HandleFunc("/csv/upload", authMiddleware(uploadCSVHandler))
     http.HandleFunc("/csv/download", authMiddleware(downloadCSVHandler))
+    http.HandleFunc("/csv/delete", deleteCsvRowHandler)
+    http.HandleFunc("/csv/edit", editCsvRowHandler)
     http.HandleFunc("/env", authMiddleware(envHandler))
 	http.HandleFunc("/logout", authMiddleware(logoutHandler))
 
