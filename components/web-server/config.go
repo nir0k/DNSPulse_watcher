@@ -85,12 +85,15 @@ func StartServer(port string, done chan bool) {
         <-done
         if err := server.Shutdown(context.Background()); err != nil {
             fmt.Println("Server Shutdown:", err)
+            log.AppLog.Info("Server Shutdown:", err)
         }
     }()
 
     fmt.Println("Server starting on port", port)
+    log.AppLog.Info("Server starting on port", port)
     err := server.ListenAndServe()
     if err != http.ErrServerClosed {
         fmt.Println("Server failed:", err)
+        log.AppLog.Info("Server failed:", err)
     }
 }

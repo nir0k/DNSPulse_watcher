@@ -36,10 +36,23 @@ POLLING_RATE=false
 RECURSION=true
 LOG_FILE=test.log
 LOG_LEVEL=debug
+LOG_MAX_AGE=30
+LOG_MAX_SIZE=10
+LOG_MAX_FILES=10
+WATCHER_WEB_AUTH_LOG_FILE=high_frequency_dns_mon_auth.log
+WATCHER_WEB_AUTH_LOG_LEVEL=info
+WATCHER_WEB_AUTH_LOG_MAX_AGE=30
+WATCHER_WEB_AUTH_LOG_MAX_SIZE=10
+WATCHER_WEB_AUTH_LOG_MAX_FILES=10
 CONF_CHECK_INTERVAL=1
 BUFFER_SIZE=2
 WATCHER_LOCATION=K
-WATCHER_SECURITYZONE=PROD`
+WATCHER_SECURITYZONE=PROD
+
+
+
+
+`
 	tempEnvFile := "temp.env"
 	if err := os.WriteFile(tempEnvFile, []byte(envContent), 0644); err != nil {
         t.Fatalf("Failed to create temporary .env file: %v", err)

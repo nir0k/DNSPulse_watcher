@@ -289,6 +289,7 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func uploadCSVHandler(w http.ResponseWriter, r *http.Request) {
+    csvFile := watcher.Dns_param.Dns_servers_path
     if r.Method != http.MethodPost {
         return
     }
@@ -301,7 +302,7 @@ func uploadCSVHandler(w http.ResponseWriter, r *http.Request) {
     defer file.Close()
 
     
-    dst, err := os.Create("dns_servers.csv")
+    dst, err := os.Create(csvFile)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
@@ -329,10 +330,8 @@ func uploadCSVHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func downloadCSVHandler(w http.ResponseWriter, r *http.Request) {
-    
-    csvFile := "dns_servers.csv"
+    csvFile := watcher.Dns_param.Dns_servers_path
 
-    
     file, err := os.Open(csvFile)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)

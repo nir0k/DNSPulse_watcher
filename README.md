@@ -10,6 +10,7 @@ Key Program Features:
 - Records resolved server names, resolve time, rcode, protocol, truncated flag and timestamps in Prometheus for historical analysis.
 - Runs in an infinite loop for continuous monitoring.
 - Web access to edit configuration
+- Log rotate
 
 ### Install
 **requred go 1.21.1**
@@ -72,11 +73,18 @@ make build
   - `WATCHER_WEB_USER` - Username to acces into web
   - `WATCHER_WEB_PASSWORD` - Password to acces into web
 
-- Ligging settings:
+- Logging Watcher:
   - `LOG_FILE` - Path to application log file
   - `LOG_LEVEL` - Minimal severity level for application logging. Possible values: debug, info, warning, error, fatal (default: warning)
+  - `LOG_MAX_AGE` - The maximum age of a log file to retain. (in days)
+  - `LOG_MAX_SIZE` - The maximum size of a log file before it gets rotated. (in Megabytes (MB))
+  - `LOG_MAX_FILES` - The maximum number of old log files to retain.
+- Audit log Watcher:
   - `WATCHER_WEB_AUTH_LOG_FILE` - Path to auth log file
   - `WATCHER_WEB_AUTH_LOG_LEVEL` - Minimal severity level for auth logging. Possible values: debug, info, warning, error, fatal (default: warning)
+  - `WATCHER_WEB_AUTH_LOG_MAX_AGE` - The maximum age of a log file to retain. (in days)
+  - `WATCHER_WEB_AUTH_LOG_MAX_SIZE` - The maximum size of a log file before it gets rotated. (in Megabytes (MB))
+  - `WATCHER_WEB_AUTH_LOG_MAX_FILES` - The maximum number of old log files to retain.
 
 
 ## CSV structure:
