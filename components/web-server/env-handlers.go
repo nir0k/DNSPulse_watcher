@@ -1,20 +1,14 @@
 package webserver
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-	"strings"
+    "fmt"
+    "net/http"
+    "os"
+    "strings"
 )
 
 
 func envHandler(w http.ResponseWriter, r *http.Request) {
-	username, password, ok := r.BasicAuth()
-    if !ok || !CheckCredentials(username, password) {
-        w.Header().Set("WWW-Authenticate", `Basic realm="restricted"`)
-        http.Error(w, "Unauthorized", http.StatusUnauthorized)
-        return
-    }
 
     envFile := ".env" 
 
@@ -55,18 +49,19 @@ func envHandler(w http.ResponseWriter, r *http.Request) {
         </div>
         <h2>Show/Edit Configuration</h2>
     `)
-        if editMode {
-                
-            fmt.Fprintf(w, "<input type='submit' value='Save Changes'>")
-            fmt.Fprintf(w, "<input type='button' value='Cancel' onclick='window.history.back()'>")
-            fmt.Fprintf(w, "</form>")
-        } else {
-            
-            fmt.Fprintf(w, "<a href='/env?edit=true'><button type='button'>Edit Configuration</button></a>")
-        }
+        
         if editMode {
             fmt.Fprintf(w, "<form method='POST' action='/env'>")
         }
+        // if editMode {
+                
+        //     fmt.Fprintf(w, "<input type='submit' value='Save Changes'>")
+        //     fmt.Fprintf(w, "<input type='button' value='Cancel' onclick='window.history.back()'>")
+        //     fmt.Fprintf(w, "</form>")
+        // } else {
+            
+        //     fmt.Fprintf(w, "<a href='/env?edit=true'><button type='button'>Edit Configuration</button></a>")
+        // }
 
         lines := strings.Split(string(content), "\n")
         var currentGroup, currentComment string
@@ -115,6 +110,15 @@ func envHandler(w http.ResponseWriter, r *http.Request) {
                 }
             }
         }
+        if editMode {
+            fmt.Fprintf(w, "<input type='submit' value='Save Changes'>")
+            fmt.Fprintf(w, "<input type='button' value='Cancel' onclick='window.history.back()'>")
+            fmt.Fprintf(w, "</form>")
+        } else {
+            fmt.Fprintf(w, "<a href='/env?edit=true'><button type='button'>Edit Configuration</button></a>")
+        }
+
+        // fmt.Fprintf(w, "</body></html>")
 
         fmt.Fprintf(w, "</body></html>")
 

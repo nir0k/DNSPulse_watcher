@@ -1,4 +1,4 @@
 server,server_ip,service_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
 TestServer,127.0.0.5,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&test.ru,2&2
-new_server2,1.2.3.4,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru,1
-TestServe3,127.0.0.99,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&test.ru,2&3
+new_server2,1.2.3.4,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru&region.test2.ru,1&2
+TestServe3,127.0.0.99,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&region.test.ru&test.com,2&3&3

@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
+	"github.com/nir0k/HighFrequencyDNSChecker/components/log"
 	"github.com/nir0k/HighFrequencyDNSChecker/components/watcher"
-    "github.com/nir0k/HighFrequencyDNSChecker/components/log"
-    "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 
@@ -86,6 +87,15 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
             };
             xhr.send(JSON.stringify(data));
         }
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    
+        function unescapeHTML(str) {
+            var textArea = document.createElement('textarea');
+            textArea.innerHTML = str;
+            return textArea.value;
+        }
         // Additional JavaScript functions for delete, edit, and add
         // Function to delete a row
         function deleteRow(rowIndex, event) {
@@ -108,7 +118,7 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
             var cells = row.getElementsByTagName('td');
             for (var i = 0; i < cells.length - 1; i++) {
                 var cell = cells[i];
-                var cellValue = cell.textContent; // Use textContent instead of innerHTML
+                var cellValue = unescapeHTML(cell.innerHTML); // Unescape the HTML here
                 var input = document.createElement('input');
                 input.type = 'text';
                 input.value = cellValue;
@@ -135,7 +145,7 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
         
             ajaxRequest('POST', '/csv/edit', { index: rowIndex, data: newData }, function(response) {
                 for (var i = 0; i < newData.length; i++) {
-                    row.cells[i].innerHTML = newData[i];
+                    row.cells[i].innerHTML = escapeHTML(newData[i]); // Escape HTML entities here
                 }
         
                 document.getElementById('edit-btn-' + rowIndex).style.display = 'inline-block';
@@ -143,8 +153,8 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
                 document.getElementById('save-btn-' + rowIndex).style.display = 'none';
                 document.getElementById('cancel-btn-' + rowIndex).style.display = 'none';
             });
-        }                    
-        </script>
+        }                             
+        </script>    
     </head>
     <body>
         <div class="navbar">
@@ -179,7 +189,9 @@ func csvHandler(w http.ResponseWriter, r *http.Request) {
 
             fmt.Fprintf(w, "<tr id='row-%d'>", i)
             for j, field := range record {
-                fmt.Fprintf(w, "<td id='cell-%d-%d'>%s</td>", i, j, field) // Modify each cell like this
+                escapedField := escapeHTML(field)
+                fmt.Fprintf(w, "<td id='cell-%d-%d'>%s</td>", i, j, escapedField)
+                // fmt.Fprintf(w, "<td id='cell-%d-%d'>%s</td>", i, j, field) // Modify each cell like this
             }
             if i == editingRow {
                 
@@ -498,4 +510,8 @@ func editCsvRowHandler(w http.ResponseWriter, r *http.Request) {
     // Send a success response back
     w.WriteHeader(http.StatusOK)
     fmt.Fprint(w, "Row edited successfully")
+}
+
+func escapeHTML(s string) string {
+    return strings.ReplaceAll(s, "&", "&amp;")
 }
