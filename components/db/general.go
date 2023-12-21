@@ -74,7 +74,8 @@ func InitDB(db *sql.DB) error {
         Auth INTEGER,
         Username varchar(255),
         Password varchar(255),
-        RetriesCount INTEGER
+        RetriesCount INTEGER,
+        BuferSize INTEGER
     );`
     _, err = db.Exec(createTableSQL)
     if err != nil {

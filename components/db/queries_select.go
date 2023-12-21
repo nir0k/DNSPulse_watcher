@@ -123,8 +123,8 @@ func GetMembersForSync(db *sql.DB) ([]MemberForSync, error) {
 
 func GetPrometheusConfig(db *sql.DB) (PrometheusConfiguration, error) {
     var config PrometheusConfiguration
-    row := db.QueryRow("SELECT Url, MetricName, Auth, Username, Password, RetriesCount FROM config_prometheus LIMIT 1")
-    err := row.Scan(&config.Url, &config.MetricName, &config.Auth, &config.Username, &config.Password, &config.RetriesCount)
+    row := db.QueryRow("SELECT Url, MetricName, Auth, Username, Password, RetriesCount, BuferSize FROM config_prometheus LIMIT 1")
+    err := row.Scan(&config.Url, &config.MetricName, &config.Auth, &config.Username, &config.Password, &config.RetriesCount, &config.BuferSize)
     if err != nil {
         if err == sql.ErrNoRows {
             return config, nil

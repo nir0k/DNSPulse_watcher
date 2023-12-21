@@ -339,7 +339,7 @@ func configHandler(w http.ResponseWriter, r *http.Request) {
 				Username: r.FormValue("Username"),
 				Password: r.FormValue("Password"),
 				RetriesCount: retriesCount,
-				BufferSize: bufferSize,
+				BuferSize: bufferSize,
 			}
 			fmt.Println("newPromConf: ", newPromConf)
 			err = sqldb.UpdatePromConfEditableFields(sqldb.AppDB, newPromConf)

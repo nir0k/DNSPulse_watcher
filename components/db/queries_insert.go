@@ -89,13 +89,13 @@ func InsertPrometheusConfig(db *sql.DB, conf PrometheusConfiguration) error {
     }
 
     // Insert new record
-    insertSQL := `INSERT INTO config_prometheus (Url, MetricName, Auth, Username, Password, RetriesCount) VALUES (?, ?, ?, ?, ?, ?)`
+    insertSQL := `INSERT INTO config_prometheus (Url, MetricName, Auth, Username, Password, RetriesCount, BuferSize) VALUES (?, ?, ?, ?, ?, ?, ?)`
     statement, err := db.Prepare(insertSQL)
     if err != nil {
         // log.Fatal(err)
         return err
     }
-    _, err = statement.Exec(conf.Url, conf.MetricName, conf.Auth, conf.Username, conf.Password, conf.RetriesCount)
+    _, err = statement.Exec(conf.Url, conf.MetricName, conf.Auth, conf.Username, conf.Password, conf.RetriesCount, conf.BuferSize)
     if err != nil {
         // log.Fatal(err)
         return err

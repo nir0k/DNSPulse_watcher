@@ -140,8 +140,8 @@ func UpdateSyncConfEditableFields(db *sql.DB, conf SyncConfiguration) error {
 }
 
 func UpdatePromConfEditableFields(db *sql.DB, conf PrometheusConfiguration) error {
-    updateSQL := `UPDATE config_prometheus SET Url = ?, MetricName = ?, Auth = ?, Username = ?, Password = ?, RetriesCount =?`
-        _, err := db.Exec(updateSQL, conf.Url, conf.MetricName, conf.Auth, conf.Username, conf.Password, conf.RetriesCount)
+    updateSQL := `UPDATE config_prometheus SET Url = ?, MetricName = ?, Auth = ?, Username = ?, Password = ?, RetriesCount = ?, BuferSize = ?`
+        _, err := db.Exec(updateSQL, conf.Url, conf.MetricName, conf.Auth, conf.Username, conf.Password, conf.RetriesCount, conf.BuferSize)
     return err
 }
 

@@ -2,7 +2,7 @@ package watcher
 
 import (
 	sqldb "HighFrequencyDNSChecker/components/db"
-    log "HighFrequencyDNSChecker/components/log"
+	log "HighFrequencyDNSChecker/components/log"
 	"context"
 	"encoding/base64"
 	"strconv"
@@ -146,10 +146,10 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
 }
 
 
-func bufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, response_header dns.MsgHdr) {
+func BufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, response_header dns.MsgHdr) {
     Mu.Lock()
 	defer Mu.Unlock()
-    if len(Buffer) >= PrometheusConfig.BufferSize {
+    if len(Buffer) >= PrometheusConfig.BuferSize {
         go sendVM(Buffer)
         Buffer = nil
         return
@@ -171,6 +171,7 @@ func sendVM(items []promwrite.TimeSeries) bool {
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
+    // fmt.Print("---:", items)
     log.AppLog.Debug("TimeSeries:", items)
     for i := 0; i < PrometheusConfig.RetriesCount; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))

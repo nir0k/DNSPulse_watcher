@@ -121,11 +121,11 @@ func TestBufferTimeSeries(t *testing.T) {
     Buffer = []promwrite.TimeSeries{}
 
     // Set the buffer size limit for the test
-    PrometheusConfig.BufferSize = 3
+    PrometheusConfig.BuferSize = 3
 
     // Call bufferTimeSeries three times
     for i := 0; i < 3; i++ {
-        bufferTimeSeries(server, tm, value, header)
+        BufferTimeSeries(server, tm, value, header)
     }
 
     // Assertions
@@ -134,7 +134,7 @@ func TestBufferTimeSeries(t *testing.T) {
     }
 
     // Test that Buffer is reset and sendVM is called after fourth invocation
-    bufferTimeSeries(server, tm, value, header)
+    BufferTimeSeries(server, tm, value, header)
     if len(Buffer) != 0 {
         t.Errorf("Buffer was not reset correctly after reaching limit, got size = %d, want %d", len(Buffer), 0)
     }

@@ -56,7 +56,7 @@ type PrometheusConfiguration struct {
     Username      string `json:"username" yaml:"username"`
     Password      string `json:"password" yaml:"password"`
     RetriesCount  int    `json:"retriesCount" yaml:"retriesCount"`
-    BufferSize    int    `json:"bufferSize" yaml:"buferSize"`
+    BuferSize    int    `json:"buferSize" yaml:"buferSize"`
 }
 
 type PrometheusLabelConfiguration struct {
