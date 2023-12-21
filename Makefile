@@ -7,21 +7,20 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GORUN=$(GOCMD) run
 
-
 BINARY_NAME=HighFrequencyDNSChecker
 
 build:
-	GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./bin/$(BINARY_NAME)-linux-amd64 ./cmd/$(BINARY_NAME)
+	@CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC=x86_64-linux-gnu-gcc $(GOBUILD) -o ./bin/$(BINARY_NAME)-linux-amd64 ./cmd/$(BINARY_NAME)
 
 test:
-	$(GOTEST) -v ./...
+	@$(GOTEST) -v ./...
 
 clean:
-	$(GOCLEAN)
-	rm ./bin/$(BINARY_NAME)-linux-amd64
+	@$(GOCLEAN)
+	@rm ./bin/$(BINARY_NAME)-linux-amd64
 
 run:
-	env GOOS=darwin $(GOBUILD) -o bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
+	@env GOOS=darwin $(GOBUILD) -o bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 # Declare phony targets
 .PHONY: build test clean run
