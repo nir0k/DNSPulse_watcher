@@ -1,9 +1,11 @@
 package log
 
+import "github.com/sirupsen/logrus"
+
 type Log_conf struct {
-    Log_path string
-    Log_level string
-    Log_max_age int
-    Log_max_size int
-    Log_max_files int
+    Path string
+    Level logrus.Level
+    MaxAge int
+    MaxSize int
+    MaxFiles int
 }

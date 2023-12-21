@@ -8,10 +8,10 @@ GOTEST=$(GOCMD) test
 GORUN=$(GOCMD) run
 
 
-BINARY_NAME=High_Frequency_DNS_Monitoring
+BINARY_NAME=HighFrequencyDNSChecker
 
 build:
-	GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./bin/$(BINARY_NAME)-linux-amd64 -v
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./bin/$(BINARY_NAME)-linux-amd64 ./cmd/$(BINARY_NAME)
 
 test:
 	$(GOTEST) -v ./...
@@ -21,7 +21,7 @@ clean:
 	rm ./bin/$(BINARY_NAME)-linux-amd64
 
 run:
-	$(GORUN) main.go
+	env GOOS=darwin $(GOBUILD) -o bin/$(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 # Declare phony targets
 .PHONY: build test clean run

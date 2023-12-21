@@ -1,0 +1,91 @@
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:54:57+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:54:57+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:55:15+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:55:15+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:55:35+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52183","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T12:55:35+01:00","token":"","username":"user"}
+{"ip":"127.0.0.1:52203","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:01:04+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52203","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:01:04+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"action":"csv_download","ip":"127.0.0.1:52203","level":"info","msg":"CSV file downloaded","time":"2023-12-20T13:01:23+01:00","token":"eyJhbGciOi..."}
+{"ip":"127.0.0.1:52248","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:17:20+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52248","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:17:20+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52329","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:33:13+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52329","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:33:13+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52370","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:52:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52370","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T13:52:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52401","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:03:56+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52401","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:03:56+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52464","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:27:30+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52464","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:27:30+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52553","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:52:21+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52553","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T14:52:21+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52589","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:00:20+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52589","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:00:20+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52748","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:14:02+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52748","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:14:02+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52810","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:33:55+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52810","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:33:55+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52885","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:46:55+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52885","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:46:55+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52911","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:54:02+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52911","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T15:54:02+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52954","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T16:19:35+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:52954","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T16:19:35+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:52954","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:19:42+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52954","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:19:42+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53014","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T16:56:43+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:53014","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T16:56:43+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:53014","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:56:52+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53014","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:56:52+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"action":"logout","level":"info","msg":"User logged out","time":"2023-12-20T16:58:31+01:00","token":"eyJhbGciOi..."}
+{"ip":"127.0.0.1:53021","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:58:41+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53021","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T16:58:41+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"action":"logout","level":"info","msg":"User logged out","time":"2023-12-20T17:04:46+01:00","token":"eyJhbGciOi..."}
+{"ip":"127.0.0.1:53052","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T17:04:51+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53052","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T17:04:51+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53137","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T17:28:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53137","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T17:28:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58398","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T18:58:32+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58398","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T18:58:32+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58469","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:15:40+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58469","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:15:40+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58534","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T19:33:21+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:58534","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-20T19:33:21+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:58534","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:33:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58534","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:33:29+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58587","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:56:41+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58587","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T19:56:41+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58607","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T20:04:58+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58607","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T20:04:58+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58642","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T20:19:42+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58642","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T20:19:42+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:57440","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T21:23:49+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:57440","level":"info","msg":"Authentication success","status":"success","time":"2023-12-20T21:23:49+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"action":"csv_download","file":"dns_servers.csv","ip":"127.0.0.1:49708","level":"info","msg":"CSV file downloaded","time":"2023-12-21T01:23:29+01:00","token":"token_not_found"}
+{"ip":"127.0.0.1:49929","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T01:24:28+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:49929","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T01:24:28+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:50269","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:33:57+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:50269","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:33:57+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52089","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:41:27+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:52089","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:41:27+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"action":"logout","level":"info","msg":"User logged out","time":"2023-12-21T02:50:54+01:00","token":"eyJhbGciOi..."}
+{"ip":"127.0.0.1:54069","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:50:59+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:54069","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T02:50:59+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58494","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T03:07:52+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:58494","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T03:07:52+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:51778","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T03:47:46+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:51778","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T03:47:46+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:55015","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T04:01:09+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:55015","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T04:01:09+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:61436","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-21T04:27:29+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:61436","level":"warning","msg":"Authentication attempt failed","status":"failed","time":"2023-12-21T04:27:29+01:00","token":"","username":"admin"}
+{"ip":"127.0.0.1:61436","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T04:27:39+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:61436","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T04:27:39+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53232","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:01:14+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:53232","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:01:14+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:60231","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:30:08+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:60231","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:30:08+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:61911","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:36:54+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:61911","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:36:54+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:64232","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:46:25+01:00","token":"eyJhbGciOi...","username":"admin"}
+{"ip":"127.0.0.1:64232","level":"info","msg":"Authentication success","status":"success","time":"2023-12-21T05:46:25+01:00","token":"eyJhbGciOi...","username":"admin"}
