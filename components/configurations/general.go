@@ -2,6 +2,7 @@ package config
 
 import (
 	"HighFrequencyDNSChecker/components/db"
+	// "HighFrequencyDNSChecker/components/watcher"
 	"crypto/md5"
 	"database/sql"
 	"fmt"
@@ -113,6 +114,12 @@ func Setup() error {
 		err = sqldb.InsertResolvers(sqldb.AppDB, resolvers)
 		if err != nil {
 			fmt.Println("Error InsertResolvers, error: ", err)
+			return err
+		}
+		fmt.Print("Watcher:", mainConf.Watcher)
+		err = sqldb.InsertWatcherConfig(sqldb.AppDB, mainConf.Watcher)
+		if err != nil {
+			fmt.Println("Error InsertWatcherConfig, error: ", err)
 			return err
 		}
 
