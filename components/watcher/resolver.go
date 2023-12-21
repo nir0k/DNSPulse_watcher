@@ -3,7 +3,6 @@ package watcher
 import (
 	sqldb "HighFrequencyDNSChecker/components/db"
 	log "HighFrequencyDNSChecker/components/log"
-	// "fmt"
 	"strconv"
 	"time"
 
@@ -82,8 +81,10 @@ func CreatePolling() {
 		log.AppLog.Error("Failed to get resolvers from db, error:", err)
 		return
 	}
-    PrometheusConfig, _ = sqldb.GetPrometheusConfig(sqldb.AppDB)
-    PrometheusLabel, _ = sqldb.GetPrometheusLabelConfig(sqldb.AppDB)
+    // PrometheusConfig, _ = sqldb.GetPrometheusConfig(sqldb.AppDB)
+    // PrometheusLabel, _ = sqldb.GetPrometheusLabelConfig(sqldb.AppDB)
+    // WatcherConfig, _ = sqldb.GetWatcherConfig(sqldb.AppDB)
+    Config, _ = sqldb.GetConfgurations(sqldb.AppDB)
     if Polling {
         close(Polling_chan)
         time.Sleep(1 * time.Second)

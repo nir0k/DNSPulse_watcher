@@ -67,15 +67,15 @@ func TestCollectLabels(t *testing.T) {
     }
 
     // Assign mock PrometheusLabel for testing
-    PrometheusLabel = mockPrometheusLabel
+    Config.PrometheusLabels = mockPrometheusLabel
 
-	PrometheusConfig = sqldb.PrometheusConfiguration{
+	Config.Prometheus = sqldb.PrometheusConfiguration{
         MetricName: "testMetricName",
         // ... [other fields as necessary] ...
     }
 
     // Call collectLabels
-    gotLabels := collectLabels(testResolver, testMsgHdr, PrometheusLabel)
+    gotLabels := collectLabels(testResolver, testMsgHdr, Config.PrometheusLabels)
 
     // Define expected labels
     expectedLabels := []promwrite.Label{
@@ -121,7 +121,7 @@ func TestBufferTimeSeries(t *testing.T) {
     Buffer = []promwrite.TimeSeries{}
 
     // Set the buffer size limit for the test
-    PrometheusConfig.BuferSize = 3
+    Config.Prometheus.BuferSize = 3
 
     // Call bufferTimeSeries three times
     for i := 0; i < 3; i++ {
@@ -146,10 +146,10 @@ func TestSendVM(t *testing.T) {
 	log.AppLog = logrus.New()
     log.AppLog.Out = io.Discard
     // Backup the original PrometheusConfig
-    originalConfig := PrometheusConfig
+    originalConfig := Config
 
     // Mock setup
-    PrometheusConfig = sqldb.PrometheusConfiguration{
+    Config.Prometheus = sqldb.PrometheusConfiguration{
         Url: "http://mockserver.com",
         RetriesCount: 3,
     }
@@ -177,5 +177,5 @@ func TestSendVM(t *testing.T) {
     // Additional assertions can be made here if possible
 
     // Restore the original PrometheusConfig
-    PrometheusConfig = originalConfig
+    Config = originalConfig
 }

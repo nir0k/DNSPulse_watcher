@@ -15,17 +15,18 @@ import (
 
 var (
     // Prometheus PrometheusConfig
-    PrometheusConfig sqldb.PrometheusConfiguration
-    PrometheusLabel sqldb.PrometheusLabelConfiguration
+    // PrometheusConfig sqldb.PrometheusConfiguration
+    // PrometheusLabel sqldb.PrometheusLabelConfiguration
     Buffer []promwrite.TimeSeries
-    WatcherConfig sqldb.WatcherConfiguration
-    MainConfig sqldb.MainConfiguration
+    // WatcherConfig sqldb.WatcherConfiguration
+    // MainConfig sqldb.MainConfiguration
+    Config sqldb.Config
     Mu sync.Mutex
 )
 
 
 func basicAuth() string {
-    auth := PrometheusConfig.Username + ":" + PrometheusConfig.Password
+    auth := Config.Prometheus.Username + ":" + Config.Prometheus.Password
     return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
@@ -36,7 +37,7 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
     labels := []promwrite.Label{
         {
             Name:  "__name__",
-            Value: PrometheusConfig.MetricName,
+            Value: Config.Prometheus.MetricName,
         },
         {
             Name: "server",
@@ -60,19 +61,19 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
         },
         {
             Name: "watcher",
-            Value: MainConfig.Hostname,
+            Value: Config.General.Hostname,
         },
         {
             Name: "watcher_ip",
-            Value: MainConfig.IPAddress,
+            Value: Config.General.IPAddress,
         },
         {
             Name: "watcher_security_zone",
-            Value: WatcherConfig.SecurityZone,
+            Value: Config.Watcher.SecurityZone,
         },
         {
             Name: "watcher_location",
-            Value: WatcherConfig.Location,
+            Value: Config.Watcher.Location,
         },
         {
             Name: "protocol",
@@ -149,13 +150,13 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
 func BufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, response_header dns.MsgHdr) {
     Mu.Lock()
 	defer Mu.Unlock()
-    if len(Buffer) >= PrometheusConfig.BuferSize {
+    if len(Buffer) >= Config.Prometheus.BuferSize {
         go sendVM(Buffer)
         Buffer = nil
         return
     }
     instance := promwrite.TimeSeries{
-        Labels: collectLabels(server, response_header, PrometheusLabel),
+        Labels: collectLabels(server, response_header, Config.PrometheusLabels),
         Sample: promwrite.Sample{
             Time:  tm,
             Value: value,
@@ -166,22 +167,22 @@ func BufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, respon
 
 
 func sendVM(items []promwrite.TimeSeries) bool {
-    client := promwrite.NewClient(PrometheusConfig.Url)
+    client := promwrite.NewClient(Config.Prometheus.Url)
     
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
     // fmt.Print("---:", items)
     log.AppLog.Debug("TimeSeries:", items)
-    for i := 0; i < PrometheusConfig.RetriesCount; i++ {
+    for i := 0; i < Config.Prometheus.RetriesCount; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
         if err == nil {
-            log.AppLog.Debug("Remote write to VM succesfull. URL:", PrometheusConfig.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+            log.AppLog.Debug("Remote write to VM succesfull. URL:", Config.Prometheus.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
         }
-        log.AppLog.Warn("Remote write to VM failed. Retry ", i+1, " of ", PrometheusConfig.RetriesCount, ". URL:", PrometheusConfig.Url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
+        log.AppLog.Warn("Remote write to VM failed. Retry ", i+1, " of ", Config.Prometheus.RetriesCount, ". URL:", Config.Prometheus.Url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
     }
-    log.AppLog.Error("Remote write to VM failed. URL:", PrometheusConfig.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    log.AppLog.Error("Remote write to VM failed. URL:", Config.Prometheus.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
     log.AppLog.Debug("Request:", req)
     return false
 }
