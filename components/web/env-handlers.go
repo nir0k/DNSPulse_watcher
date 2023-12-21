@@ -3,14 +3,9 @@ package webserver
 import (
 	sqldb "HighFrequencyDNSChecker/components/db"
 	log "HighFrequencyDNSChecker/components/log"
-	// "time"
-
-	// "database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
-
-	// "path/filepath"
 	"reflect"
 )
 

@@ -25,7 +25,7 @@ func TestInitDB(t *testing.T) {
         "config_main": {"id", "HostName", "IPAddress", "DBname", "ConfPath", "Sync", "UpdateInterval", "Hash", "LastCheck", "LastUpdate"},
         "config_logging": {"id", "path", "minSeverity", "maxAge", "maxSize", "maxFiles", "type"},
         "config_web": {"id", "Port", "SslIsEnable", "SslCertPath", "SslKeyPath", "SesionTimeout", "InitUsername", "InitPassword"},
-        "config_prometheus": {"id", "Url", "MetricName", "Auth", "Username", "Password", "RetriesCount"},
+        "config_prometheus": {"id", "Url", "MetricName", "Auth", "Username", "Password", "RetriesCount", "BuferSize"},
         "prometheus_label_config": {"id", "label", "isEnable"},
         "config_resolver": {"id", "Path", "PullTimeout", "Delimeter", "ExtraDelimeter", "Hash", "LastCheck", "LastUpdate"},
         "config_sync": {"id", "is_enable", "token"},

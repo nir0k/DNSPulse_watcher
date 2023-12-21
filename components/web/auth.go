@@ -231,6 +231,6 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func CheckCredentials(username, password string, conf sqldb.WebServerConfiguration) bool {
-    fmt.Printf("Checking credentials: %s/%s against %s/%s\n", username, password, conf.InitUsername, conf.InitPassword)
+    // fmt.Printf("Checking credentials: %s/%s against %s/%s\n", username, password, conf.InitUsername, conf.InitPassword)
     return username == conf.InitUsername && password == conf.InitPassword
 }

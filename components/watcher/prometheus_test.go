@@ -15,11 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Mock data for PrometheusLabelConfiguration
-var mockPrometheusLabel = sqldb.PrometheusLabelConfiguration{
-    // Populate this with the relevant mock values
-    // Example: Truncated: true, Opcode: false, etc.
-}
+var mockPrometheusLabel = sqldb.PrometheusLabelConfiguration{}
 
 type MockClient struct {
     WriteFunc func(ctx context.Context, req *promwrite.WriteRequest, headers map[string]string) (int, error)

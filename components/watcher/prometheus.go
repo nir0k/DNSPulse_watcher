@@ -14,12 +14,7 @@ import (
 )
 
 var (
-    // Prometheus PrometheusConfig
-    // PrometheusConfig sqldb.PrometheusConfiguration
-    // PrometheusLabel sqldb.PrometheusLabelConfiguration
     Buffer []promwrite.TimeSeries
-    // WatcherConfig sqldb.WatcherConfiguration
-    // MainConfig sqldb.MainConfiguration
     Config sqldb.Config
     Mu sync.Mutex
 )
@@ -172,7 +167,6 @@ func sendVM(items []promwrite.TimeSeries) bool {
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
-    // fmt.Print("---:", items)
     log.AppLog.Debug("TimeSeries:", items)
     for i := 0; i < Config.Prometheus.RetriesCount; i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))

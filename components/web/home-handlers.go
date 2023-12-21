@@ -1,7 +1,6 @@
 package webserver
 
 import (
-	// "fmt"
 	"html/template"
 	"net/http"
 )

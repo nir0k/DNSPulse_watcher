@@ -3,7 +3,6 @@ package webserver
 import (
 	"context"
 	"crypto/tls"
-	// "database/sql"
 	"fmt"
 	"net/http"
 

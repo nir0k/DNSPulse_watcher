@@ -2,8 +2,6 @@ package sqldb
 
 import (
 	"database/sql"
-	// "fmt"
-	// "log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -15,10 +13,6 @@ var (
 
 
 func InitDB(db *sql.DB) error {
-    // db, err := sql.Open("sqlite3", dbName)
-    // if err != nil {
-    //     log.Fatal(err)
-    // }
     var err error
 
     createTableSQL := `CREATE TABLE IF NOT EXISTS config_main (

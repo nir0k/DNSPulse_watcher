@@ -145,12 +145,6 @@ func UpdatePromConfEditableFields(db *sql.DB, conf PrometheusConfiguration) erro
     return err
 }
 
-// func UpdatePromLabelsConfEditableFields(db *sql.DB, conf PrometheusConfiguration) error {
-//  updateSQL := `UPDATE config_prometheus SET Url = ?, MetricName = ?, Auth = ?, Username = ?, Password = ?, RetriesCount =?`
-//         _, err := db.Exec(updateSQL, conf.Url, conf.MetricName, conf.Auth, conf.Username, conf.Password, conf.RetriesCount)
-//     return err
-// }
-
 func UpdateResolvConfEditableFields(db *sql.DB, conf ResolversConfiguration) error {
     updateSQL := `UPDATE config_resolver SET Path = ?, PullTimeout = ?, Delimeter = ?, ExtraDelimeter = ?`
         _, err := db.Exec(updateSQL, conf.Path, conf.PullTimeout, conf.Delimeter, conf.ExtraDelimeter)

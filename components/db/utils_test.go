@@ -2,15 +2,12 @@ package sqldb
 
 import (
 	"database/sql"
-	"log"
+	// "log"
 	"reflect"
 	"testing"
 	"time"
 
-	// "time"
-
 	_ "github.com/mattn/go-sqlite3"
-    // log "HighFrequencyDNSChecker/components/log"
 
 )
 
@@ -484,8 +481,8 @@ func TestGetLogConfig(t *testing.T) {
     defer db.Close()
 
     // Insert sample log configurations
-    insertLogConfig(db, LogConfiguration{Path: "/log/path1", MinSeverity: "info", MaxAge: 30, MaxSize: 100, MaxFiles: 5}, 0) // Type 0
-    insertLogConfig(db, LogConfiguration{Path: "/log/path2", MinSeverity: "warn", MaxAge: 60, MaxSize: 200, MaxFiles: 10}, 1) // Type 1
+    InsertLogConfig(db, LogConfiguration{Path: "/log/path1", MinSeverity: "info", MaxAge: 30, MaxSize: 100, MaxFiles: 5}, 0) // Type 0
+    InsertLogConfig(db, LogConfiguration{Path: "/log/path2", MinSeverity: "warn", MaxAge: 60, MaxSize: 200, MaxFiles: 10}, 1) // Type 1
 
     // Test GetLogConfig for type 0
     logConfig, err := GetLogConfig(db, 0)
@@ -508,21 +505,12 @@ func TestGetLogConfig(t *testing.T) {
     }
 }
 
-// insertLogConfig inserts a single log configuration into the database with a specified type.
-func insertLogConfig(db *sql.DB, config LogConfiguration, logType int) {
-    insertSQL := `INSERT INTO config_logging (path, minSeverity, maxAge, maxSize, maxFiles, type) VALUES (?, ?, ?, ?, ?, ?)`
-    _, err := db.Exec(insertSQL, config.Path, config.MinSeverity, config.MaxAge, config.MaxSize, config.MaxFiles, logType)
-    if err != nil {
-        log.Fatalf("Failed to insert sample log config: %v", err)
-    }
-}
-
 func TestGetWebServerConfig(t *testing.T) {
     db := setupInMemoryDB(t)
     defer db.Close()
 
     // Insert sample web server configuration
-    insertWebServerConfig(db, WebServerConfiguration{
+    InsertWebserverConfig(db, WebServerConfiguration{
         Port:          "8080",
         SslIsEnable:   true,
         SslCertPath:   "/ssl/cert",
@@ -553,52 +541,19 @@ func TestGetWebServerConfig(t *testing.T) {
     }
 }
 
-// insertWebServerConfig inserts a single web server configuration into the database.
-func insertWebServerConfig(db *sql.DB, config WebServerConfiguration) {
-    insertSQL := `INSERT INTO config_web (Port, SslIsEnable, SslCertPath, SslKeyPath, SesionTimeout, InitUsername, InitPassword) VALUES (?, ?, ?, ?, ?, ?, ?)`
-    _, err := db.Exec(insertSQL, config.Port, config.SslIsEnable, config.SslCertPath, config.SslKeyPath, config.SesionTimeout, config.InitUsername, config.InitPassword)
-    if err != nil {
-        log.Fatalf("Failed to insert sample web server config: %v", err)
-    }
-}
-
-
-// insertSyncConfig inserts a single sync configuration into the database.
-// func insertSyncConfig(db *sql.DB, config SyncConfiguration) {
-//     // Insert sync configuration
-//     insertSyncSQL := `INSERT INTO config_sync (is_enable, token) VALUES (?)`
-//     res, err := db.Exec(insertSyncSQL, config.IsEnable, config.Token)
-//     if err != nil {
-//         log.Fatalf("Failed to insert sample sync config: %v", err)
-//     }
-
-//     lastID, err := res.LastInsertId()
-//     if err != nil {
-//         log.Fatalf("Failed to retrieve last insert ID for sync config: %v", err)
-//     }
-
-//     // Insert members of the sync configuration
-//     for _, member := range config.Members {
-//         insertMemberSQL := `INSERT INTO config_sync_members (sync_id, hostname, port) VALUES (?, ?, ?)`
-//         _, err := db.Exec(insertMemberSQL, lastID, member.Hostname, member.Port)
-//         if err != nil {
-//             log.Fatalf("Failed to insert sync member config: %v", err)
-//         }
-//     }
-// }
-
 func TestGetPrometheusConfig(t *testing.T) {
     db := setupInMemoryDB(t)
     defer db.Close()
 
     // Insert sample Prometheus configuration
-    insertPrometheusConfig(db, PrometheusConfiguration{
+    InsertPrometheusConfig(db, PrometheusConfiguration{
         Url: "http://example.com",
         MetricName: "testMetric",
         Auth: true,
         Username: "user",
         Password: "pass",
         RetriesCount: 3,
+        BuferSize: 2,
     })
 
     // Test GetPrometheusConfig
@@ -614,19 +569,11 @@ func TestGetPrometheusConfig(t *testing.T) {
         Username: "user",
         Password: "pass",
         RetriesCount: 3,
+        BuferSize: 2,
     }
 
     if !reflect.DeepEqual(promConfig, expectedConfig) {
         t.Errorf("Retrieved Prometheus config does not match. Expected %+v, got %+v", expectedConfig, promConfig)
-    }
-}
-
-// insertPrometheusConfig inserts a single Prometheus configuration into the database.
-func insertPrometheusConfig(db *sql.DB, config PrometheusConfiguration) {
-    insertSQL := `INSERT INTO config_prometheus (Url, MetricName, Auth, Username, Password, RetriesCount) VALUES (?, ?, ?, ?, ?, ?)`
-    _, err := db.Exec(insertSQL, config.Url, config.MetricName, config.Auth, config.Username, config.Password, config.RetriesCount)
-    if err != nil {
-        log.Fatalf("Failed to insert sample Prometheus config: %v", err)
     }
 }
 
@@ -635,7 +582,7 @@ func TestGetPrometheusLabelConfig(t *testing.T) {
     defer db.Close()
 
     // Insert sample Prometheus label configuration
-    insertPrometheusLabelConfig(db, PrometheusLabelConfiguration{
+    InsertPrometeusLabelsConfig(db, PrometheusLabelConfiguration{
         Opcode: true,
         Authoritative: false,
         // ... other label configurations
@@ -655,25 +602,6 @@ func TestGetPrometheusLabelConfig(t *testing.T) {
 
     if !reflect.DeepEqual(promLabelConfig, expectedConfig) {
         t.Errorf("Retrieved Prometheus label config does not match. Expected %+v, got %+v", expectedConfig, promLabelConfig)
-    }
-}
-
-// insertPrometheusLabelConfig inserts a single Prometheus label configuration into the database.
-func insertPrometheusLabelConfig(db *sql.DB, config PrometheusLabelConfiguration) {
-    val := reflect.ValueOf(config)
-    typ := val.Type()
-
-    for i := 0; i < val.NumField(); i++ {
-        field := val.Field(i)
-        name := typ.Field(i).Name
-
-        if field.Kind() == reflect.Bool {
-            insertSQL := `INSERT INTO prometheus_label_config (label, isEnable) VALUES (?, ?)`
-            _, err := db.Exec(insertSQL, name, field.Bool())
-            if err != nil {
-                log.Fatalf("Failed to insert sample Prometheus label config: %v", err)
-            }
-        }
     }
 }
 
@@ -711,7 +639,24 @@ func TestGetResolvers(t *testing.T) {
     }
 
     // Insert test data
-    insertTestData(t, db)
+    testData := []Resolver{
+        {
+            Server: "TestServer1",
+            IPAddress: "192.168.1.1",
+            Domain: "test.com",
+            Location: "TestLocation1",
+            Site: "TestSite1",
+            ServerSecurityZone: "Zone1",
+            Prefix: "Prefix1",
+            Protocol: "Protocol1",
+            Zonename: "ZoneName1",
+            Recursion: true,
+            QueryCount: 10,
+            ServiceMode: true,
+        },
+        // Add more entries as needed
+    }
+    InsertResolvers(db, testData)
 
     // Test GetResolvers
     resolvers, err := GetResolvers(db)
@@ -741,35 +686,6 @@ func TestGetResolvers(t *testing.T) {
     // Compare expected and actual data
     if !reflect.DeepEqual(resolvers, expected) {
         t.Errorf("Expected resolvers %+v, got %+v", expected, resolvers)
-    }
-}
-
-func insertTestData(t *testing.T, db *sql.DB) {
-    // Insert test data into Resolvers table
-    testData := []Resolver{
-        {
-            Server: "TestServer1",
-            IPAddress: "192.168.1.1",
-            Domain: "test.com",
-            Location: "TestLocation1",
-            Site: "TestSite1",
-            ServerSecurityZone: "Zone1",
-            Prefix: "Prefix1",
-            Protocol: "Protocol1",
-            Zonename: "ZoneName1",
-            Recursion: true,
-            QueryCount: 10,
-            ServiceMode: true,
-        },
-        // Add more entries as needed
-    }
-
-    for _, resolver := range testData {
-        _, err := db.Exec("INSERT INTO Resolvers (Server, IPAddress, Domain, Location, Site, ServerSecurityZone, Prefix, Protocol, Zonename, Recursion, QueryCount, ServiceMode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            resolver.Server, resolver.IPAddress, resolver.Domain, resolver.Location, resolver.Site, resolver.ServerSecurityZone, resolver.Prefix, resolver.Protocol, resolver.Zonename, resolver.Recursion, resolver.QueryCount, resolver.ServiceMode)
-        if err != nil {
-            t.Fatalf("Failed to insert test data: %v", err)
-        }
     }
 }
 
@@ -897,11 +813,16 @@ func TestUpdateMainConfigTimestamps(t *testing.T) {
     defer db.Close()
 
     // Insert a sample main configuration
-    insertMainConfig(db, t, MainConfiguration{
-        DBname: "testDB",
-        // ... other fields ...
-        LastCheck:  time.Now().Unix(),
-        LastUpdate: time.Now().Unix(),
+    InsertMainConfig(db, MainConfiguration{
+        DBname:         "testDB",
+        Hostname:       "testHost",
+        IPAddress:      "192.168.1.1",
+        ConfPath:       "/test/path",
+        Sync:           true,
+        UpdateInterval: 10,
+        Hash:           "testhash",
+        LastCheck:      time.Now().Unix(),
+        LastUpdate:     time.Now().Unix(),
     })
 
     // Define new timestamps for update
@@ -927,21 +848,17 @@ func TestUpdateMainConfigTimestamps(t *testing.T) {
     }
 }
 
-func insertMainConfig(db *sql.DB, t *testing.T, conf MainConfiguration) {
-    _, err := db.Exec("INSERT INTO config_main (DBname, LastCheck, LastUpdate) VALUES (?, ?, ?)", conf.DBname, conf.LastCheck, conf.LastUpdate)
-    if err != nil {
-        t.Fatalf("Failed to insert main config: %v", err)
-    }
-}
-
 func TestUpdateResolversConfigTimestamps(t *testing.T) {
     db := setupInMemoryDB(t)
     defer db.Close()
 
     // Insert a sample resolver configuration
-    insertResolverConfig(db, t, ResolversConfiguration{
-        Path:       "test/path",
-        // ... other fields ...
+    InsertResolversConfig(db, ResolversConfiguration{
+        Path:           "test/path",
+        PullTimeout:    60,
+        Delimeter:      ",",
+        ExtraDelimeter: ";",
+        Hash:           "resolverhash",
         LastCheck:  time.Now().Unix(),
         LastUpdate: time.Now().Unix(),
     })
@@ -966,12 +883,5 @@ func TestUpdateResolversConfigTimestamps(t *testing.T) {
     // Check if the timestamps are updated correctly
     if config.LastCheck != newLastCheck || config.LastUpdate != newLastUpdate {
         t.Errorf("Resolver config timestamps not updated correctly. Got LastCheck: %v, LastUpdate: %v, Want LastCheck: %v, LastUpdate: %v", config.LastCheck, config.LastUpdate, newLastCheck, newLastUpdate)
-    }
-}
-
-func insertResolverConfig(db *sql.DB, t *testing.T, conf ResolversConfiguration) {
-    _, err := db.Exec("INSERT INTO config_resolver (Path, LastCheck, LastUpdate) VALUES (?, ?, ?)", conf.Path, conf.LastCheck, conf.LastUpdate)
-    if err != nil {
-        t.Fatalf("Failed to insert resolver config: %v", err)
     }
 }

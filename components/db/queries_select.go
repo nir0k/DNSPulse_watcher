@@ -1,9 +1,6 @@
 package sqldb
 
 import (
-	// sqldb "HighFrequencyDNSChecker/components/db"
-	// log "HighFrequencyDNSChecker/components/log"
-	// sqldb "HighFrequencyDNSChecker/components/db"
 	"database/sql"
 	"reflect"
 
