@@ -1,116 +1,142 @@
-# High-Frequency DNS Resolution Program for Prometheus Integration
-Program Overview:
-Our cutting-edge program is designed to provide high-frequency DNS name resolution for server names from a predefined list. This data is then efficiently recorded in Prometheus, empowering users with real-time insights into their server infrastructure's performance and availability.
+# High-Frequency DNS Server Polling Utility
 
-Key Program Features:
-- High-Frequency Polling: Fast and frequent DNS polling (default: every 150ms).
-- Dynamic Server Naming: Random server names with timestamps.
-- IP Address Verification: Ensures that IP address 1.1.1.1 is resolved for each server name.
-- Continuous Monitoring: Operates endlessly in a loop for uninterrupted monitoring.
-- Records resolved server names, resolve time, rcode, protocol, truncated flag and timestamps in Prometheus for historical analysis.
-- Runs in an infinite loop for continuous monitoring.
-- Web access to edit configuration
-- Log rotate
+## Description:
+This utility is designed for high-frequency verification of DNS server name resolutions from a pre-determined list. The results of these checks are saved to a Prometheus database using the remote write feature, ensuring access to data in real-time. This provides users with comprehensive tools for analyzing the efficiency and availability of server infrastructure, significantly enhancing their ability to effectively monitor and maintain system integrity.
 
-### Install
-**requred go 1.21.1**
-```bash
-git clone https://github.com/nir0k/HighFrequencyDNSChecker.git
-cd HighFrequencyDNSChecker
-make build
+## Key features of the utility:
+- High-frequency polling (default every 150 ms)
+- Dynamic formation of the name for DNS server resolution. (A prefix in the form of unixtime with milliseconds is added)
+- Verification of the resolved address (ensures that the address 1.1.1.1 was resolved)
+- Continuous monitoring. (implies 24/7 operation)
+- Ability to select labels to send in the configuration
+- Dynamic updating of the configuration from a file
+- Dynamic updating of the list of servers polled from a csv file
+- Synchronization of configurations and server lists with neighboring servers (list of servers and authorization token configured in the configuration file)
+- Web interface:
+    - Ability to view configuration, list of polled servers, latest application logs and audits, synchronization status with other servers)
+    - Ability to edit the list of servers being polled either by uploading a file or line by line.
+    - Ability to change most of the configuration through the web interface
+- Logging of utility operations with a choice of logging level
+- Audit log recording
+- Log rotation according to set rules
+
+### Requirements for running the utility:
+**Attention, the utility's operation was only tested on MacOS and Linux operating systems**
+
+- Configuration file in yaml format
+- File with the list of servers being polled
+
+### Example configuration file:
+```yaml
+General:
+  db_name: "app.db"     # Path to the database file and file name
+  confCheckInterval: 1  # Configuration check frequency (in minutes)
+  sync: true            # Enable synchronization with neighbors
+
+Log:
+  path: "log.json"      # Path to the log file
+  minSeverity: "info"   # Minimum severity level
+  maxAge: 30            # Maximum file lifespan (in days)
+  maxSize: 10           # Maximum file size (in MB)
+  maxFiles: 10          # Maximum number of files
+
+Audit:
+  path: "audit.json"    # Path to the audit file
+  minSeverity: "info"   # Minimum severity level
+  maxAge: 30            # Maximum file lifespan (in days)
+  maxSize: 10           # Maximum file size (in MB)
+  maxFiles: 10          # Maximum number of files
+
+WebServer:
+  port: 443                 # Port on which the web server will run
+  sslIsEnable: true         # Enable or disable HTTPS (currently not working)
+  sslCertPath: "cert.pem"   # Path to the certificate file
+  sslKeyPath: "key.pem"     # Path to the private key file (should not be password protected)
+  sesionTimeout: 600        # User session timeout (in seconds)
+  initUsername: "admin"     # User for web interface login
+  initPassword: "password"  # Password for connection
+
+Sync:
+  isEnable: true                    # Enable synchronization with neighbors
+  token: "fvdknlvd9ergturoegkvnemc" # Token for synchronization (unlike the user token, it does not expire)
+  members:                          # List of neighbors to synchronize with
+    - hostname: "127.0.0.1"
+      port: 443
+    - hostname: "10.10.10.10"
+      port: 8081
+
+Prometheus:                                     # Prometheus settings
+  url: "http://prometheus:8428/api/v1/write"    # URL to connect to Prometheus
+  metricName: "dns_resolve"                     # Metric name
+  auth: false                                   # Enable/disable authorization
+  username: "user"                              # Prometheus user for writing data to the DB
+  password: "password"                          # Prometheus password
+  retriesCount: 2                               # Number of attempts to send metrics
+  buferSize: 2                                  # Metrics buffer size (how many metrics will be collected before sending to Prometheus)
+
+PrometheusLabels:              # Enable or disable additional labels (current settings reflected)
+  opcode: false
+  authoritative: false
+  truncated: true
+  rcode: true
+  recursionDesired: false
+  recursionAvailable: false
+  authenticatedData: false
+  checkingDisabled: false
+  pollingRate: false
+  recursion: true
+
+Resolvers:                  
+  path: "dns_servers.csv"   # Path to the file with the list of servers being polled
+  pullTimeout: 2            # Maximum response wait time (in seconds)
+  delimeter: ","            # Main delimiter in the CSV file
+  extraDelimeter: "&"       # Additional delimiter for fields server_security_zone, query_count_rps, zonename_with_recursion, query_count_with_recursion_rps
+
+Watcher:
+  location: K2              # Location of the server with the utility
+  securityZone: PROD        # Security zone of the server with the utility
 ```
 
-### Prepare
-- Create and fill out the file `.env` in the same folder with the program. Complited example we found in the file `.env-example` in the project
-- Create and fill out csv-file with DNS servers information. Complited example we found in the file `dns_servers.csv` in the project. If you using diferen filename, you are need change it in .env file
-
-
-### Use
-```bash
-./High_Frequency_DNS_Monitoring-linux-amd64
-```
-
-### Custom Rcode:
-- 30 - Resolved IP-address not equals 1.1.1.1
-- 50 - DNS Server not answer
-
-
-## Available parameters in configurations:
-
-- DNS settings:
-  - `DNS_RESOLVERPATH` - Path to file with list of DNS servers
-  - `DNS_TIMEOUT` - DNS answer timeout in seconds
-  - `DELIMETER` - Delimeter for CSV-file fields 
-  - `DELIMETER_FOR_ADDITIONAL_PARAM` - Delimeter for value in fiels 'zonename', 'query_count_rps', 'zonename_with_recursion' and 'query_count_with_recursion_rps' in CSV file
-
-- Prometheus settings:
-  - `PROM_URL` - Prometheus remote write url. example: http://prometheus:8428/api/v1/write
-  - `PROM_METRIC` - Prometheus metric name
-  - `PROM_AUTH` - Prometheus authentication. false or true. If true, values PROM_USER and PROM_PASS are required
-  - `PROM_USER` - Prometheus username
-  - `PROM_PASS` - Prometheus password
-  - `PROM_RETRIES` - Count retries for post data in prometheus
-  - Labels: 
-    - `OPCODES` - OpCodes. Possible value: true or false
-    - `AUTHORITATIVE` - Authoritative. Possible value: true or false
-    - `TRUNCATED` - Truncated. Possible value: true or false
-    - `RCODE` - Rcode. Possible value: true or false
-    - `RECURSION_DESIRED` - RecursionDesired. Possible value: true or false
-    - `RECURSION_AVAILABLE` - RecursionAvailable. Possible value: true or false
-    - `AUTHENTICATE_DATA` - AuthenticatedData. Possible value: true or false
-    - `CHECKING_DISABLED` - CheckingDisabled. Possible value: true or false
-    - `POLLING_RATE` - Polling rate. Possible value: true or false
-    - `RECURSION` - Recursion. Request with reqursion or not. Possible value: true or false
-
-- Watcher settings:
-  - `CONF_CHECK_INTERVAL` - Interval check changes in config in minutes
-  - `BUFFER_SIZE` - Timeseries buffer size for sent to prometheus
-  - `WATCHER_LOCATION` - Watcher location
-  - `WATCHER_SECURITYZONE` - Watcher security zone
-
-- Web-Server settings:
-  - `WATCHER_WEB_PORT` - Lisenning port
-  - `WATCHER_WEB_USER` - Username to acces into web
-  - `WATCHER_WEB_PASSWORD` - Password to acces into web
-
-- Logging Watcher:
-  - `LOG_FILE` - Path to application log file
-  - `LOG_LEVEL` - Minimal severity level for application logging. Possible values: debug, info, warning, error, fatal (default: warning)
-  - `LOG_MAX_AGE` - The maximum age of a log file to retain. (in days)
-  - `LOG_MAX_SIZE` - The maximum size of a log file before it gets rotated. (in Megabytes (MB))
-  - `LOG_MAX_FILES` - The maximum number of old log files to retain.
-- Audit log Watcher:
-  - `WATCHER_WEB_AUTH_LOG_FILE` - Path to auth log file
-  - `WATCHER_WEB_AUTH_LOG_LEVEL` - Minimal severity level for auth logging. Possible values: debug, info, warning, error, fatal (default: warning)
-  - `WATCHER_WEB_AUTH_LOG_MAX_AGE` - The maximum age of a log file to retain. (in days)
-  - `WATCHER_WEB_AUTH_LOG_MAX_SIZE` - The maximum size of a log file before it gets rotated. (in Megabytes (MB))
-  - `WATCHER_WEB_AUTH_LOG_MAX_FILES` - The maximum number of old log files to retain.
-
-
-## CSV structure:
-
-**Delimeter: `,` (comma)**
-
-
-Example CSV:
+### Example of a CSV file with a list of servers
 ```csv
 server,server_ip,service_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
-google_dns_1,8.8.8.8,false,google.com1,dnsmon,testloc1,testsite1,srv_sec-zone1,udp,testzone1,5,testzone1_r,2
-google_dns_2,8.8.4.4,false,google.com2,dnsmon,testloc2,testsite2,srv_sec-zone2,udp,testzone7&testzone10,5&4,testzone7_r&testzone100_4,2&3
+TestServer,127.0.0.5,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&test.ru,2&2
+new_server2,1.2.3.4,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru&region.test2.ru,1&2
+TestServe3,127.0.0.99,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&region.test.ru&test.com,2&3&3
+Dublicate ,1.2.3.5,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru,1
+Dublicate ,1.2.3.5,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru,1
+```
+- `server` - The name of the server, which will be displayed in labels (does not affect polling)
+- `server_ip` - The IP address of the server, which is used to connect to the server
+- `service_mode` - Service mode, servers with service mode enabled are not polled, once a second a metric with data indicating the server is in service mode is sent
+- `domain` - Domain
+- `prefix` - The prefix to which a random part is added for polling. The formation pattern: <unixtime with nanoseconds>.<suffix>.<zonename>
+- `location` - The location of the DNS server
+- `site` - The site of the DNS server
+- `server_security_zone` - The server's security zone
+- `protocol` - The protocol by which the polling will be conducted (udp, tcp, udp4, tcp4, udp6, tcp6)
+- `zonename` - The security zone being polled without recursion; if there are multiple zones, they should be entered in one line using the "extraDelimeter" value from the configuration as a separator
+- `query_count_rps` - The frequency of polling without recursion; if there are multiple zones, the polling values should be entered in one line using the "extraDelimeter" value from the configuration as a separator
+- `zonename_with_recursion` - The security zone being polled with recursion; if there are multiple zones, they should be entered in one line using the "extraDelimeter" value from the configuration as a separator
+- `query_count_with_recursion_rps` - The frequency of polling with recursion; if there are multiple zones, the polling values should be entered in one line using the "extraDelimeter" value from the configuration as a separator
+
+
+### Compiling the utility:
+```bash
+make build
+```
+The compiled package will be available in `bin/HighFrequencyDNSChecker-linux-amd64`
+
+### Launch:
+To launch the utility, simply place the executable file and the configuration file in the same directory (which specifies where to find the file with the list of servers to poll, where to create files for logs and audits, and the database file).
+```bash
+chmod +x HighFrequencyDNSChecker-linux-amd64
+./HighFrequencyDNSChecker-linux-amd64
 ```
 
-### Field descriptiom:
-
- - `server` - DNS Server name. Value type: String
- - `server_ip` - DNS Server IP address. Value type: String
- - `service_mode` - Enable service mode. Possible value: true or false
- - `domain` - Domain. Value type: String
- - `prefix` - Suffix for create dunamic hostname fo resolve. Hostname create by this rule: `<unixtime with nanoseconds>.<suffix>.<zonename>`
- - `location` - DNS Server Location. Value type: String
- - `site` - DNS Server Site. Value type: String
- - `server_security_zone` - DNS Server secyrity zone. Value type: string
- - `protocol` - Protocol Used for polling. Value type: String. Possible value: tcp, udp, udp4, udp6, tcp4, tcp6
- - `zonename` - DNS Zonename without recusrion. Value type: String
- - `query_count_rps` - Count request per secconds for DSN server polling without recursion. Value type: Intenger
- - `zonename_with_recursion` - DNS Zonename with recusrion. Value type: String
- - `query_count_with_recursion_rps` - Count request per secconds for DSN server polling with recursion. Value type: Intenger
+### During operation, the utility creates the following files:
+- SQLite database file (name and location are set in the configuration file)
+- Log file in JSON format
+- Audit file in JSON format
+- During log rotation, logs are compressed into a gz archive
+ 
