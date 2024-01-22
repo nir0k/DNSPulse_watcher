@@ -36,3 +36,4 @@ audit.json
 config.yaml
 *.db
 *.pem
+/bin/*

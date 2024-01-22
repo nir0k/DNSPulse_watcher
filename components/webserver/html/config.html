@@ -1,0 +1,53 @@
+
+
+
+<!DOCTYPE html>
+<html>
+    {{template "config_styles"}}
+</head>
+<body>
+    {{template "navbar"}}
+    <div class="main-content">
+        <div class="title-container">
+            <h1>Application Configuration</h1>
+        </div>
+        {{ define "configGroup" }}
+        <table class="zebra-table">
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+            {{ range $key, $value := . }}
+            <tr>
+                <td>{{ $key }}</td>
+                <td>{{ $value }}</td>
+            </tr>
+            {{ end }}
+        </table>
+        <br>
+        {{ end }}
+
+        <h2>General</h2>
+        {{ template "configGroup" .General }}
+
+        <h2>App Logger</h2>
+        {{ template "configGroup" .AppLogger }}
+
+        <h2>Audit Logger</h2>
+        {{ template "configGroup" .AuditLogger }}
+
+        <h2>Web Server</h2>
+        {{ template "configGroup" .WebServer }}
+
+        <h2>Sync</h2>
+        {{ template "configGroup" .Sync }}
+
+        <h2>Prometheus</h2>
+        {{ template "configGroup" .Prometheus }}
+
+        <h2>Polling</h2>
+        {{ template "configGroup" .Polling }}
+    </div>
+</body>
+</html>
+            

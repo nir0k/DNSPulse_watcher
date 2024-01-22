@@ -1,0 +1,151 @@
+openapi: 3.0.0
+info:
+  title: HighFrequencyDNSChecker API
+  version: 1.0.0
+  description: >
+    API for HighFrequencyDNSChecker application. 
+    Note: Authentication requires a token in the 'Authorization' header without a 'Bearer' prefix.
+servers:
+  - url: SERVER_URL_PLACEHOLDER
+    description: Production server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+
+paths:
+  /api/conf/state:
+    get:
+      summary: Get configuration and CSV state
+      description: >- 
+        Retrieves the current state of the configuration and CSV files, 
+        including their last update timestamps and hash values.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Configuration:
+                    type: object
+                    properties:
+                      LastHash:
+                        type: string
+                      LastUpdate:
+                        type: integer
+                        format: int64
+                  Csv:
+                    type: object
+                    properties:
+                      LastHash:
+                        type: string
+                      LastUpdate:
+                        type: integer
+                        format: int64
+              examples:
+                example-1:
+                  value: 
+                    Configuration:
+                      LastHash: "0e0f14858fc6c6302d2f2b9eabe2c836b248000fc5ff935980af0ee26a416f78"
+                      LastUpdate: 1705923325
+                    Csv:
+                      LastHash: "06a32f876b5a79af4f6ea414a873b8b0f3e2e9f533502a738f7fbcc8282a3d63"
+                      LastUpdate: 1705923325
+
+  /api/conf/download/config:
+    get:
+      summary: Download configuration file
+      description: Provides a download for the current configuration file in YAML format.
+      responses:
+        '200':
+          description: Configuration file
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+                format: binary
+              example: |
+                General:
+                    confCheckInterval: 1
+                    location: K2999
+                    securityZone: PROD
+                Audit:
+                    path: audit.json
+                    minSeverity: info
+                    maxAge: 30
+                    maxSize: 10
+                    maxFiles: 11
+                WebServer:
+                    port: 443
+                    listenAddress: 0.0.0.0
+                    sslIsEnable: true
+                    sslCertPath: data/ssl/cert.pem
+                    sslKeyPath: data/ssl/key.pem
+                    sesionTimeout: 601
+                    username: USERNAME
+                    password: PASSWORD
+                Sync:
+                    isEnable: true
+                    token: fvdknlvd9ergtdsewruroegkvnemc90ru34fcemf3jkd32daa
+                SyncMembers:
+                    - hostname: 127.0.0.1
+                      port: 443
+                Prometheus:
+                    url: http://prometheus:8428/api/v1/write
+                    auth: false
+                    username: USERNAME
+                    password: PASSWORD
+                    metricName: dns_resolve
+                    retriesCount: 2
+                    buferSize: 2
+                    labels:
+                        opcode: false
+                        authoritative: false
+                        truncated: true
+                        rcode: true
+                        recursionDesired: false
+                        recursionAvailable: false
+                        authenticatedData: false
+                        checkingDisabled: false
+                        pollingRate: false
+                        recursion: true
+                Resolvers:
+                    path: data/dns_servers.csv
+                    delimeter: ','
+                    extraDelimeter: '&'
+                    pullTimeout: 3
+  /api/conf/download/csv:
+    get:
+      summary: Download CSV file
+      description: Allows downloading the current CSV file used in the application.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              example: |
+                server,server_ip,service_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
+                TestServer,127.0.0.5,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&test.ru,2&2
+                new_server2,1.2.3.4,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru&region.test2.ru,1&2
+                TestServe3,127.0.0.99,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&region.test.ru&test.com,2&3&3
+                Dublicate,1.2.3.5,false,newdomain.com,prefix999,location99999,site,zone,udp,zone1,10,test.ru,1
+
+  /health:
+    get:
+      summary: Health check
+      description: Checks if the API server is running and reachable.
+      responses:
+        '200':
+          description: OK response

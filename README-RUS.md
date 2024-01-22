@@ -16,11 +16,15 @@
 - Веб-интерфейс:
 	- Возможность просмотра конфигурации, списка опрашиваемых серверов, последних логов приложения и аудита, состояния синхронизации с другими серверами)
 	- Возможность правки списка опрашиваем серверов как загрузкой файла, так и построчно.
-	- Возможность изменения большей части конфигурации через веб-интерфейс
+	- Возможность изменения конфигурации через веб-интерфейс
+  - Документация для API
+- API:
+  - Hash-файлов конфигурации и списка серверов, а так же дату последненго изменения
+  - Получения файла конигурации
+  - Получение файла со списком серверов
 - Логирование работы утилиты с выбором уровня логирования
 - Запись аудит лога
 - Ротация лога по заданным правилам
-
 
 ### Требования для запуска утилиты:
 **Внимание, работы утилиты тестировалась только в операционных системах MacOS и Linux**
@@ -32,16 +36,9 @@
 ### Пример конфигурационного файла:
 ```yaml
 General:
-  db_name: "app.db"     # Путь к файлу базы данных и название файла
   confCheckInterval: 1  # Переодичность проверки конфигурации (в минутах)
-  sync: true            # Включение синхронизации с соседями
-
-Log:
-  path: "log.json"      # Путь к файлу лога
-  minSeverity: "info"   # Минимальный уровень критичности
-  maxAge: 30            # Максимальный срок времяжизни фийла (в днях)
-  maxSize: 10           # Максимальный размер файла (в Мб)
-  maxFiles: 10          # Максимальное количество файлов
+  location: K2              # Пасположение сервера с утилитой
+  securityZone: PROD        # Зона безопасности сервера с утилитой
 
 Audit:
   path: "audit.json"    # Путь к файлу аудита
@@ -51,18 +48,19 @@ Audit:
   maxFiles: 10          # Максимальное количество файлов
 
 WebServer:
+  listenAddress: 0.0.0.0    # Интерфейс на котором будет работать web-server
   port: 443                 # Порт на котором будет работать web-сервер
   sslIsEnable: true         # Включение ли выключение HTTPS (на данный момент не работает)
   sslCertPath: "cert.pem"   # Путь к файлу сертификата
   sslKeyPath: "key.pem"     # Путь к файлу приватного ключа (не должен быть защищен парольной фразой)
   sesionTimeout: 600        # Время таймаута пользовательской сессии (в секундах)
-  initUsername: "admin"     # Пользователь для входа в вебинтерфейс
-  initPassword: "password"  # Пароль для подключения
+  username: "admin"         # Пользователь для входа в вебинтерфейс
+  password: "password"      # Пароль для подключения
 
 Sync:
   isEnable: true                    # Включение синхронизации с соседями
   token: "fvdknlvd9ergturoegkvnemc" # Тонек для синхронизации (в отличии от пользовательского токена не имеет срока действия)
-  members:                          # Список соседий с которыми надо синхронизироваться
+SyncMembers:                        # Список соседий с которыми надо синхронизироваться
     - hostname: "127.0.0.1"
       port: 443
     - hostname: "10.10.10.10"
@@ -70,36 +68,29 @@ Sync:
 
 Prometheus:                                     # Настройки Promrtheus
   url: "http://prometheus:8428/api/v1/write"    # URL для подключения к prometheus
-  metricName: "dns_resolve"                     # Наименование метрики
   auth: false                                   # Включение/выключение авторизации
   username: "user"                              # Пользователь Prometheus для запись данных в БД
   password: "password"                          # Пароль Prometheus
+  metricName: "dns_resolve"                     # Наименование метрики
   retriesCount: 2                               # Количество попыток отправить метрки
   buferSize: 2                                  # Размер буфера метрик (сколько метрик будет собранно перед отправкой в Promrtheus)
-
-PrometheusLabels:              # Включение или отключение дополнительных лейблов (отражена текущая настройка)
-  opcode: false
-  authoritative: false
-  truncated: true
-  rcode: true
-  recursionDesired: false
-  recursionAvailable: false
-  authenticatedData: false
-  checkingDisabled: false
-  pollingRate: false
-  recursion: true
+  labels:                                       # Включение или отключение дополнительных лейблов (отражена текущая настройка)
+        opcode: false
+        authoritative: false
+        truncated: true
+        rcode: true
+        recursionDesired: false
+        recursionAvailable: false
+        authenticatedData: false
+        checkingDisabled: false
+        pollingRate: false
+        recursion: true
 
 Resolvers:                  
   path: "dns_servers.csv"   # Путь к файлу со списком опрашиваемых серверов
   pullTimeout: 2            # Максимальное время ожидание ответа (в секундах)
   delimeter: ","            # Основной разделитель в CSV-файле
   extraDelimeter: "&"       # Дополнительный разделитель для полей server_security_zone, query_count_rps, zonename_with_recursion, query_count_with_recursion_rps
-
-Watcher:
-  location: K2              # Пасположение сервера с утилитой
-  securityZone: PROD        # Зона безопасности сервера с утилитой
-
-
 ```
 ### Пример csv-файла со списком серверов
 ```csv
@@ -131,14 +122,36 @@ make build
 Скомпилированный пакет будет доступен в `bin/HighFrequencyDNSChecker-linux-amd64`
 
 ### Запуск:
-Для запуска утилиты достаточно расположить в одной директории исполняемый файл и файл конфигурации (в котором указанно где нужно искать файл со списком серверов для опроса: где создовать файлы для лога и аудита и файл базы данных)
+Для запуска утилиты достаточно расположить в одной директории исполняемый файлом:
+- файл config.yaml конфигурации 
+- файл со списком серверов на который ссылается параметр `Resolvers->path` в конфигурации
+- файл с сертификатом для web-сервера на который ссылается параметр `WebServer->sslCertPath` в конфигурации
+- файл с ключем для сертификата на который ссылается параметр `WebServer->sslKeyPath` в конфигурации
+
+Ключи запуска:
+```bash
+-config string
+      Path to the configuration file (default "config.yaml")
+-logMaxAge int
+      Maximum log file age (default 10)
+-logMaxFiles int
+      Maximum number of log files (default 10)
+-logMaxSize int
+      Max size for log file (Mb) (default 10)
+-logPath string
+      Path to the log file (default "log")
+-logSeverity string
+      Min log severity (default "debug")
+--help 
+      Show help
+```
+Пример запуска утилиты
 ```bash
 chmod +x HighFrequencyDNSChecker-linux-amd64
 ./HighFrequencyDNSChecker-linux-amd64
 ```
 
 ### В процессе работы утилита создает следующие файлы:
--	Файл базы данных SQLite (имя и расположение задается в конфигурационном файле
 -	Файл лога в формате JSON
 -	Файл аудита в формате JSON
 -	При ротации логи сжимаются в архив gz

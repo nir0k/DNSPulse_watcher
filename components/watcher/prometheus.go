@@ -1,8 +1,8 @@
-package watcher
+package polling
 
 import (
-	sqldb "HighFrequencyDNSChecker/components/db"
-	log "HighFrequencyDNSChecker/components/log"
+	"HighFrequencyDNSChecker/components/datastore"
+	"HighFrequencyDNSChecker/components/logger"
 	"context"
 	"encoding/base64"
 	"strconv"
@@ -15,28 +15,28 @@ import (
 
 var (
     Buffer []promwrite.TimeSeries
-    Config sqldb.Config
     Mu sync.Mutex
 )
 
 
-func basicAuth() string {
-    auth := Config.Prometheus.Username + ":" + Config.Prometheus.Password
+func basicAuth(conf datastore.PrometheusConfStruct) string {
+    auth := conf.Username + ":" + conf.Password
     return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 
-func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.PrometheusLabelConfiguration) []promwrite.Label {
+func collectLabels(server datastore.PollingHost, r_header dns.MsgHdr, conf datastore.PrometheusConfStruct, confG datastore.GeneralConfigStruct) []promwrite.Label {
+    promLabels := datastore.GetConfig().Prometheus.Labels
     var label promwrite.Label
 
     labels := []promwrite.Label{
         {
             Name:  "__name__",
-            Value: Config.Prometheus.MetricName,
+            Value: conf.MetricName,
         },
         {
             Name: "server",
-            Value: server.Server,
+            Value: server.Hostname,
         },
         {
             Name: "server_ip",
@@ -56,19 +56,19 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
         },
         {
             Name: "watcher",
-            Value: Config.General.Hostname,
+            Value: confG.Hostname,
         },
         {
             Name: "watcher_ip",
-            Value: Config.General.IPAddress,
+            Value: confG.IPAddress,
         },
         {
             Name: "watcher_security_zone",
-            Value: Config.Watcher.SecurityZone,
+            Value: confG.SecurityZone,
         },
         {
             Name: "watcher_location",
-            Value: Config.Watcher.Location,
+            Value: confG.Location,
         },
         {
             Name: "protocol",
@@ -76,7 +76,7 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
         },
         {
             Name: "server_security_zone",
-            Value: server.ServerSecurityZone,
+            Value: server.SecurityZone,
         },
         {
             Name: "service_mode",
@@ -142,16 +142,18 @@ func collectLabels(server sqldb.Resolver, r_header dns.MsgHdr, promLabels sqldb.
 }
 
 
-func BufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, response_header dns.MsgHdr) {
+func BufferTimeSeries(server datastore.PollingHost, tm time.Time, value float64, response_header dns.MsgHdr) {
+    conf := datastore.GetConfig().Prometheus
+    confGeneral := datastore.GetConfig().General
     Mu.Lock()
 	defer Mu.Unlock()
-    if len(Buffer) >= Config.Prometheus.BuferSize {
-        go sendVM(Buffer)
+    if len(Buffer) >= conf.BufferSize {
+        go sendVM(Buffer, conf)
         Buffer = nil
         return
     }
     instance := promwrite.TimeSeries{
-        Labels: collectLabels(server, response_header, Config.PrometheusLabels),
+        Labels: collectLabels(server, response_header, conf, confGeneral),
         Sample: promwrite.Sample{
             Time:  tm,
             Value: value,
@@ -161,22 +163,22 @@ func BufferTimeSeries(server sqldb.Resolver, tm time.Time, value float64, respon
 }
 
 
-func sendVM(items []promwrite.TimeSeries) bool {
-    client := promwrite.NewClient(Config.Prometheus.Url)
+func sendVM(items []promwrite.TimeSeries, conf datastore.PrometheusConfStruct) bool {
+    client := promwrite.NewClient(conf.URL)
     
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
-    log.AppLog.Debug("TimeSeries:", items)
-    for i := 0; i < Config.Prometheus.RetriesCount; i++ {
-        _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth()}))
+    logger.Logger.Debug("TimeSeries:", items)
+    for i := 0; i < conf.RetriesCount; i++ {
+        _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth(conf)}))
         if err == nil {
-            log.AppLog.Debug("Remote write to VM succesfull. URL:", Config.Prometheus.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+            logger.Logger.Debug("Remote write to VM succesfull. URL:", conf.URL ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
         }
-        log.AppLog.Warn("Remote write to VM failed. Retry ", i+1, " of ", Config.Prometheus.RetriesCount, ". URL:", Config.Prometheus.Url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
+        logger.Logger.Warn("Remote write to VM failed. Retry ", i+1, " of ", conf.RetriesCount, ". URL:", conf.URL, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
     }
-    log.AppLog.Error("Remote write to VM failed. URL:", Config.Prometheus.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
-    log.AppLog.Debug("Request:", req)
+    logger.Logger.Error("Remote write to VM failed. URL:", conf.URL ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    logger.Logger.Debug("Request:", req)
     return false
 }

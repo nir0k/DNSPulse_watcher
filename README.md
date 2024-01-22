@@ -13,9 +13,14 @@ This utility is designed for high-frequency verification of DNS server name reso
 - Dynamic updating of the list of servers polled from a csv file
 - Synchronization of configurations and server lists with neighboring servers (list of servers and authorization token configured in the configuration file)
 - Web interface:
-    - Ability to view configuration, list of polled servers, latest application logs and audits, synchronization status with other servers)
-    - Ability to edit the list of servers being polled either by uploading a file or line by line.
-    - Ability to change most of the configuration through the web interface
+  - Ability to view configuration, list of polled servers, latest application logs and audits, and synchronization status with other servers
+  - Capability to edit the server list by uploading a file or line-by-line
+  - Option to change configuration through the web interface
+  - API documentation
+- API:
+  - Hash of configuration and server list files, and date of last modification
+  - Retrieval of the configuration file
+  - Retrieval of the server list file
 - Logging of utility operations with a choice of logging level
 - Audit log recording
 - Log rotation according to set rules
@@ -29,16 +34,9 @@ This utility is designed for high-frequency verification of DNS server name reso
 ### Example configuration file:
 ```yaml
 General:
-  db_name: "app.db"     # Path to the database file and file name
   confCheckInterval: 1  # Configuration check frequency (in minutes)
-  sync: true            # Enable synchronization with neighbors
-
-Log:
-  path: "log.json"      # Path to the log file
-  minSeverity: "info"   # Minimum severity level
-  maxAge: 30            # Maximum file lifespan (in days)
-  maxSize: 10           # Maximum file size (in MB)
-  maxFiles: 10          # Maximum number of files
+  location: K2          # Location of the server with the utility
+  securityZone: PROD    # Security zone of the server with the utility
 
 Audit:
   path: "audit.json"    # Path to the audit file
@@ -48,18 +46,19 @@ Audit:
   maxFiles: 10          # Maximum number of files
 
 WebServer:
+  listenAddress: 0.0.0.0    # The interface on which the web-server will work
   port: 443                 # Port on which the web server will run
   sslIsEnable: true         # Enable or disable HTTPS (currently not working)
   sslCertPath: "cert.pem"   # Path to the certificate file
   sslKeyPath: "key.pem"     # Path to the private key file (should not be password protected)
   sesionTimeout: 600        # User session timeout (in seconds)
-  initUsername: "admin"     # User for web interface login
-  initPassword: "password"  # Password for connection
+  username: "admin"         # User for web interface login
+  password: "password"      # Password for connection
 
 Sync:
   isEnable: true                    # Enable synchronization with neighbors
   token: "fvdknlvd9ergturoegkvnemc" # Token for synchronization (unlike the user token, it does not expire)
-  members:                          # List of neighbors to synchronize with
+  SyncMembers:                          # List of neighbors to synchronize with
     - hostname: "127.0.0.1"
       port: 443
     - hostname: "10.10.10.10"
@@ -73,28 +72,23 @@ Prometheus:                                     # Prometheus settings
   password: "password"                          # Prometheus password
   retriesCount: 2                               # Number of attempts to send metrics
   buferSize: 2                                  # Metrics buffer size (how many metrics will be collected before sending to Prometheus)
-
-PrometheusLabels:              # Enable or disable additional labels (current settings reflected)
-  opcode: false
-  authoritative: false
-  truncated: true
-  rcode: true
-  recursionDesired: false
-  recursionAvailable: false
-  authenticatedData: false
-  checkingDisabled: false
-  pollingRate: false
-  recursion: true
+  labels:                                       # Enable or disable additional labels (current settings reflected)
+    opcode: false
+    authoritative: false
+    truncated: true
+    rcode: true
+    recursionDesired: false
+    recursionAvailable: false
+    authenticatedData: false
+    checkingDisabled: false
+    pollingRate: false
+    recursion: true
 
 Resolvers:                  
   path: "dns_servers.csv"   # Path to the file with the list of servers being polled
   pullTimeout: 2            # Maximum response wait time (in seconds)
   delimeter: ","            # Main delimiter in the CSV file
   extraDelimeter: "&"       # Additional delimiter for fields server_security_zone, query_count_rps, zonename_with_recursion, query_count_with_recursion_rps
-
-Watcher:
-  location: K2              # Location of the server with the utility
-  securityZone: PROD        # Security zone of the server with the utility
 ```
 
 ### Example of a CSV file with a list of servers
@@ -128,15 +122,43 @@ make build
 The compiled package will be available in `bin/HighFrequencyDNSChecker-linux-amd64`
 
 ### Launch:
-To launch the utility, simply place the executable file and the configuration file in the same directory (which specifies where to find the file with the list of servers to poll, where to create files for logs and audits, and the database file).
+To launch the utility, place the executable file in the same directory as:
+- The configuration file `config.yaml`
+- The server list file referred to by `Resolvers->path` in the configuration
+- The web server certificate file referred to by `WebServer->sslCertPath` in the configuration
+- The certificate key file referred to by `WebServer->sslKeyPath` in the configuration
+
+```bash
+chmod +x HighFrequencyDNSChecker-linux-amd64
+./HighFrequencyDNSChecker-linux-amd64
+```
+
+Launch Parameters:
+```bash
+-config string
+      Path to the configuration file (default "config.yaml")
+-logMaxAge int
+      Maximum log file age (default 10)
+-logMaxFiles int
+      Maximum number of log files (default 10)
+-logMaxSize int
+      Max size for log file (Mb) (default 10)
+-logPath string
+      Path to the log file (default "log")
+-logSeverity string
+      Min log severity (default "debug")
+--help 
+      Show help
+```
+
+Example of Starting the Utility:
 ```bash
 chmod +x HighFrequencyDNSChecker-linux-amd64
 ./HighFrequencyDNSChecker-linux-amd64
 ```
 
 ### During operation, the utility creates the following files:
-- SQLite database file (name and location are set in the configuration file)
 - Log file in JSON format
 - Audit file in JSON format
-- During log rotation, logs are compressed into a gz archive
+- Logs are compressed into a gz archive upon rotation
  
