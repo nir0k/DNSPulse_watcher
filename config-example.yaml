@@ -1,0 +1,49 @@
+General:
+    confCheckInterval: 1
+    location: K2999
+    securityZone: PROD
+Audit:
+    path: audit.json
+    minSeverity: info
+    maxAge: 30
+    maxSize: 10
+    maxFiles: 11
+WebServer:
+    port: 443
+    listenAddress: 0.0.0.0
+    sslIsEnable: true
+    sslCertPath: data/ssl/cert.pem
+    sslKeyPath: data/ssl/key.pem
+    sesionTimeout: 601
+    username: User
+    password: Password
+Sync:
+    isEnable: true
+    token: fvdknlvd9ergtuklroegkvnemc90ru34fcemf340[ij
+SyncMembers:
+    - hostname: 127.0.0.1
+      port: 443
+Prometheus:
+    url: http://prometheus:8428/api/v1/write
+    auth: false
+    username: user
+    password: password
+    metricName: dns_resolve
+    retriesCount: 2
+    buferSize: 2
+    labels:
+        opcode: false
+        authoritative: false
+        truncated: true
+        rcode: true
+        recursionDesired: false
+        recursionAvailable: false
+        authenticatedData: false
+        checkingDisabled: false
+        pollingRate: false
+        recursion: true
+Resolvers:
+    path: data/dns_servers.csv
+    delimeter: ','
+    extraDelimeter: '&'
+    pullTimeout: 3
