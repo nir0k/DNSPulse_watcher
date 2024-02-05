@@ -39,7 +39,7 @@ ConfigHub:
 ```bash
 make build
 ```
-The compiled package will be available in `bin/HighFrequencyDNSChecker-linux-amd64`
+The compiled package will be available in `bin/DNSPulse_watcher-linux-amd64`
 
 ### Launch:
 To launch the utility, place the executable file in the same directory as:
@@ -47,11 +47,6 @@ To launch the utility, place the executable file in the same directory as:
 - The server list file referred to by `Resolvers->path` in the configuration
 - The web server certificate file referred to by `WebServer->sslCertPath` in the configuration
 - The certificate key file referred to by `WebServer->sslKeyPath` in the configuration
-
-```bash
-chmod +x HighFrequencyDNSChecker-linux-amd64
-./HighFrequencyDNSChecker-linux-amd64
-```
 
 Launch Parameters:
 ```bash
@@ -73,6 +68,6 @@ Launch Parameters:
 
 Example of Starting the Utility:
 ```bash
-chmod +x HighFrequencyDNSChecker-linux-amd64
-./HighFrequencyDNSChecker-linux-amd64
+chmod +x DNSPulse_watcher-linux-amd64
+./DNSPulse_watcher-linux-amd64
 ```

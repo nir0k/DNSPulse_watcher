@@ -38,7 +38,7 @@ ConfigHub:
 ```bash
 make build
 ```
-Скомпилированный пакет будет доступен в `bin/HighFrequencyDNSChecker-linux-amd64`
+Скомпилированный пакет будет доступен в `bin/DNSPulse_watcher-linux-amd64`
 
 ### Запуск:
 Для запуска утилиты достаточно расположить в одной директории исполняемый файлом:
@@ -66,6 +66,6 @@ make build
 ```
 Пример запуска утилиты
 ```bash
-chmod +x HighFrequencyDNSChecker-linux-amd64
-./HighFrequencyDNSChecker-linux-amd64
+chmod +x DNSPulse_watcher-linux-amd64
+./DNSPulse_watcher-linux-amd64
 ```
