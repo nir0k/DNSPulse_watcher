@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package confighub;
+option go_package = "/pkg/gRPC"; // replace with your module path
+
+
+// Define the message for SegmentConfStruct
+message SegmentConfStruct {
+    string segmentName = 1;
+    GeneralConfig general = 2;
+    SyncConfig sync = 3;
+    PrometheusConfig prometheus = 4;
+    PollingConfig polling = 5;
+}
+
+message GeneralConfig {
+    int32 checkInterval = 1;
+    string hash = 2;
+}
+
+message SyncConfig {
+    bool isEnabled = 1;
+    string token = 2;
+}
+
+message PrometheusConfig {
+    string url = 1;
+    bool authEnabled = 2;
+    string username = 3;
+    string password = 4;
+    string metricName = 5;
+    int32 retriesCount = 6;
+    int32 bufferSize = 7;
+    PrometheusLabelConfig labels = 8;
+}
+
+message PrometheusLabelConfig {
+    bool opcode = 1;
+    bool authoritative = 2;
+    bool truncated = 3;
+    bool rcode = 4;
+    bool recursionDesired = 5;
+    bool recursionAvailable = 6;
+    bool authenticatedData = 7;
+    bool checkingDisabled = 8;
+    bool pollingRate = 9;
+    bool recursion = 10;
+}
+
+message PollingConfig {
+    string path = 1;
+    string hash = 2;
+    string delimiter = 3;
+    string extraDelimiter = 4;
+    int32 pollTimeout = 5;
+}
+
+// Define the message for Csv
+message Csv {
+    string server = 1;
+    string ipAddress = 2;
+    string domain = 3;
+    string location = 4;
+    string site = 5;
+    string serverSecurityZone = 6;
+    string prefix = 7;
+    string protocol = 8;
+    string zonename = 9;
+    string queryCount = 10;
+    string zonenameWithRecursion = 11;
+    string queryCountWithRecursion = 12;
+    string serviceMode = 13;
+}
+
+// Define a message to hold a list of Csv messages
+message CsvList {
+    repeated Csv csvs = 1;
+}
+
+// Define the service
+service ConfigHubService {
+    rpc GetSegmentConfig(GetSegmentConfigRequest) returns (SegmentConfStruct);
+    rpc GetCsv(GetCsvRequest) returns (CsvList); // Updated to return CsvList
+}
+
+// Request message for GetSegmentConfig
+message GetSegmentConfigRequest {
+    string token = 1;
+    string segmentName = 2;
+}
+
+// Request message for GetCsv
+message GetCsvRequest {
+    string token = 1;
+    string segmentName = 2;
+}

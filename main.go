@@ -1,20 +1,20 @@
 package main
 
 import (
-	"HighFrequencyDNSChecker/components/datastore"
-	"HighFrequencyDNSChecker/components/logger"
-	syncing "HighFrequencyDNSChecker/components/sync"
-	"HighFrequencyDNSChecker/components/tools"
+	"DNSPulse_watcher/pkg/datastore"
+	grpcclient "DNSPulse_watcher/pkg/gRPC-client"
+	"DNSPulse_watcher/pkg/logger"
+	"DNSPulse_watcher/pkg/tools"
+	polling "DNSPulse_watcher/pkg/watcher"
+	"fmt"
 
-	"HighFrequencyDNSChecker/components/watcher"
-	"HighFrequencyDNSChecker/components/webserver"
 	"flag"
 	"os"
 	"time"
 )
 
 func setup() {
-	var configFilePath = flag.String("config", "config.yaml", "Path to the configuration file")
+	var conf = flag.String("conf", "mainConf.yaml", "Path to the main configuration file")
 	var logPath = flag.String("logPath", "log.json", "Path to the log file")
 	var logSeverity = flag.String("logSeverity", "debug", "Min log severity")
 	var logMaxSize = flag.Int("logMaxSize", 10, "Max size for log file (Mb)")
@@ -28,10 +28,10 @@ func setup() {
     }
 	logger.LogSetup(*logPath, *logMaxSize, *logMaxFiles, *logMaxAge, *logSeverity)
 
-	if !tools.FileExists(*configFilePath) {
-		logger.Logger.Fatalf("Configuration file '%s' not exist", *configFilePath)
+	if !tools.FileExists(*conf) {
+		logger.Logger.Fatalf("Configuration file '%s' not exist", *conf)
 	}
-	datastore.SetConfigFilePath(*configFilePath)
+	datastore.SetLocalConfigFilePath(*conf)
 	logConf := datastore.LogAppConfigStruct {
 		Path: *logPath,
 		MinSeverity: *logSeverity,
@@ -40,49 +40,47 @@ func setup() {
 		MaxFiles: *logMaxFiles,
 	}
 	datastore.SetLogConfig(logConf)
-	logger.Logger.Infof("HighFrequencyDNSChecker started with configuration from '%s'\n", *configFilePath)
+	logger.Logger.Infof("HighFrequencyDNSChecker started with configuration from '%s'\n", *conf)
 }
 
 func main() {
 	setup()
-	_, err := datastore.LoadConfig()
-	auditConf := datastore.GetConfig().AuditLogger
-	logger.AuditSetup(auditConf.Path, auditConf.MaxSize, auditConf.MaxFiles, auditConf.MaxAge, auditConf.MinSeverity)
+	_, err := datastore.LoadLocalConfig()
+	if err != nil {
+		logger.Logger.Errorf("error load local config, err: %v", err)
+	}
+	conf := datastore.GetLocalConfig()
+	_, _, err = grpcclient.FetchConfig(conf.ConfigHUB)
+	// logger.AuditSetup(conf.AuditLogger.Path, conf.AuditLogger.MaxSize, conf.AuditLogger.MaxFiles, conf.AuditLogger.MaxAge, conf.AuditLogger.MinSeverity)
 	if err != nil {
 		logger.Logger.Fatalf("Error to load configuration, please check config file. error: %s\n", err)
 	}
-	_, err = datastore.ReadResolversFromCSV()
-	if err != nil {
-		logger.Logger.Fatalf("Error reading or updating CSV file: %s", err)
-	}
-
-	go webserver.Webserver()
-
 
 	ticker := time.NewTicker(1 * time.Minute)
     go func() {
         for range ticker.C {
-            confState, err := datastore.LoadConfig()
+            _, err := datastore.LoadLocalConfig()
             if err != nil {
                 logger.Logger.Errorf("Error reloading configuration: %s\n", err)
             } else {
                 logger.Logger.Debug("Configuration reloaded successfully")
             }
-			csvState, err := datastore.ReadResolversFromCSV()
-			if err != nil {
-				logger.Logger.Errorf("Error reading or updating CSV file: %s", err)
-			} else {
-				logger.Logger.Debug("PollingHosts updated successfully")
-			}
-			if csvState || confState {
+			confState, pollingState, _ := grpcclient.FetchConfig(conf.ConfigHUB)
+			if confState || pollingState {
 				polling.CreatePolling()
 			}
-			syncing.CheckMembersConfig()
         }
     }()
-	
 	polling.CreatePolling()
-	
+	layout := "2006-01-02 15:04:05 -0700 MST"
+	fmt.Printf("===========================================\n")
+	fmt.Printf("Watcher started.\n  Time: %s\n", time.Now().Format(layout))
+	fmt.Printf("-------------------------------------------\n")
+	fmt.Printf("  IP address\t: %s\n  Host\t\t: %s\n", conf.LocalConf.IPAddress, conf.LocalConf.Hostname)
+	fmt.Printf("  Segment\t: %s\n", conf.ConfigHUB.Segment)
+	fmt.Printf("  Location\t: %s\n  Segment\t: %s\n", conf.LocalConf.Location, conf.LocalConf.SecurityZone)
+	fmt.Printf("  gRPC server\t: %s:%d\n", conf.ConfigHUB.Host, conf.ConfigHUB.Port)
+	fmt.Printf("===========================================\n")
 	select {}
 }
 

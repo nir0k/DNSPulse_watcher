@@ -8,21 +8,7 @@ Audit:
     maxAge: 30
     maxSize: 10
     maxFiles: 11
-WebServer:
-    port: 443
-    listenAddress: 0.0.0.0
-    sslIsEnable: true
-    sslCertPath: data/ssl/cert.pem
-    sslKeyPath: data/ssl/key.pem
-    sesionTimeout: 601
-    username: User
-    password: Password
-Sync:
-    isEnable: true
-    token: fvdknlvd9ergtuklroegkvnemc90ru34fcemf340[ij
-SyncMembers:
-    - hostname: 127.0.0.1
-      port: 443
+
 Prometheus:
     url: http://prometheus:8428/api/v1/write
     auth: false
@@ -47,3 +33,9 @@ Resolvers:
     delimeter: ','
     extraDelimeter: '&'
     pullTimeout: 3
+
+ConfigHub:
+    host: localhost
+    port: 50051
+    token: "Gbs6pVdzxK3ADGAYOdPE4mxbO13miRo6Ks0WsymuEMKYscbsVU7cA5IwOzzsL39Y"
+    encryptionKey: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

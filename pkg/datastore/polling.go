@@ -1,38 +1,17 @@
 package datastore
 
 import (
-	"HighFrequencyDNSChecker/components/logger"
-	"HighFrequencyDNSChecker/components/tools"
-	"encoding/csv"
-	"errors"
+	"DNSPulse_watcher/pkg/logger"
 	"fmt"
-	"io"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/gocarina/gocsv"
+	pb "DNSPulse_watcher/pkg/gRPC"
 )
 
-type Csv struct {
-	Server					string `csv:"server"`
-	IPAddress				string `csv:"server_ip"`
-	Domain					string `csv:"domain"`
-    Location				string `csv:"location"`
-    Site					string `csv:"site"`
-    ServerSecurityZone		string `csv:"server_security_zone"`
-    Prefix					string `csv:"prefix"`
-    Protocol				string `csv:"protocol"`
-    Zonename				string `csv:"zonename"`
-    QueryCount				string `csv:"query_count_rps"`
-    ZonenameWithRecursion	string `csv:"zonename_with_recursion"`
-    QueryCountWithRecursion	string `csv:"query_count_with_recursion_rps"`
-    ServiceMode				string `csv:"service_mode"`
-}
 
-type PollingHost struct {
+type PollingHostStruct struct {
     Hostname 		string
 	IPAddress 		string
 	Domain 			string
@@ -48,57 +27,31 @@ type PollingHost struct {
 }
 
 var (
-	pollingHosts []PollingHost
-    lastCsvHash HashStruct
+	pollingHosts []PollingHostStruct
+    lastPollingHash string
 	pollingHostsMutex sync.RWMutex
-
 )
 
-func ReadResolversFromCSV() (bool, error) {
-    var (
-		delimeter rune
-		servers []PollingHost
-	)
-	conf := GetConfig().Polling
-	if len(conf.Delimeter) > 0 {
-		delimeter = rune(conf.Delimeter[0])
-	} else {
-		return false, errors.New("string is empty, cannot parse to rune")
-	}
+func GetCSVHash() string{
+	pollingHostsMutex.RLock()
+    defer pollingHostsMutex.RUnlock()
+    return lastPollingHash
+}
 
-    fileHash, err := tools.CalculateHash(string(conf.Path))
-    if err != nil {
-        logger.Logger.Errorf("Error Calculate hash to file '%s' err: %v\n", configFile, err)
-        return false, err
-    }
+func LoadPollingHosts(data []*pb.Csv) (bool, error) {
 
-    if lastCsvHash.LastHash == fileHash {
-        logger.Logger.Debug("CSV file has not been changed")
+    var hosts []PollingHostStruct
+    conf := GetSegmentConfig().Polling
+
+    if GetCSVHash() == conf.Hash {
+        logger.Logger.Debugf("PollingHosts not changes")
         return false, nil
     }
-    logger.Logger.Infof("CSV file has been changed")
-
-	resolversFromCsv := []Csv{}
-    clientsFile, err := os.OpenFile(conf.Path, os.O_RDWR, os.ModePerm)
-	if err != nil {
-        return false, err
-	}
-	defer clientsFile.Close()
     
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-        r := csv.NewReader(in)
-        r.LazyQuotes = true
-        r.Comma = delimeter
-        return r
-    })
-	if err := gocsv.UnmarshalFile(clientsFile, &resolversFromCsv); err != nil {
-        return false, fmt.Errorf("error Unmarshal file %s : %v", conf.Path, err)
-	}
-
-	uniqueChecker := make(map[string]bool)
+    uniqueChecker := make(map[string]bool)
     var duplicates []string
-    for _, record := range resolversFromCsv {
-        key := record.Server + "-" + record.IPAddress + "-" + record.Domain
+    for _, record := range data {
+        key := record.Server + "-" + record.IpAddress + "-" + record.Domain
         if _, exists := uniqueChecker[key]; exists {
             // Collect information about the duplicate
             duplicates = append(duplicates, key)
@@ -112,20 +65,19 @@ func ReadResolversFromCSV() (bool, error) {
         return false, fmt.Errorf("duplicates found in CSV file: %s", strings.Join(duplicates, ", "))
     }
     
-    servers, err = parseZones(resolversFromCsv, conf.ExtraDelimeter)
+    hosts, err := parseZones(data, conf.ExtraDelimiter)
     if err != nil {
         return false, fmt.Errorf("error parse zones  %s : %v", conf.Path, err)
     }
 	pollingHostsMutex.Lock()
     defer pollingHostsMutex.Unlock()
-	pollingHosts = servers
-    lastCsvHash.LastHash = fileHash
-    lastCsvHash.LastUpdate = time.Now().Unix()
+	pollingHosts = hosts
+    lastPollingHash = conf.Hash
     return true, nil
 }
 
-func parseZones(records []Csv, extraDelimeter string) ([]PollingHost, error) {
-    var resolvers []PollingHost
+func parseZones(records []*pb.Csv, extraDelimeter string) ([]PollingHostStruct, error) {
+    var resolvers []PollingHostStruct
     for _, record := range records {
         
         zoneNames :=  strings.Split(record.Zonename, extraDelimeter)
@@ -142,9 +94,9 @@ func parseZones(records []Csv, extraDelimeter string) ([]PollingHost, error) {
             if err != nil {
                 queryRPSInt = 5
             }
-            resolver := PollingHost{
+            resolver := PollingHostStruct{
                 Hostname: record.Server,
-                IPAddress: record.IPAddress,
+                IPAddress: record.IpAddress,
                 Domain: record.Domain,
                 Location: record.Location,
                 Site: record.Site,
@@ -169,9 +121,9 @@ func parseZones(records []Csv, extraDelimeter string) ([]PollingHost, error) {
             if err != nil {
                 queryRPSInt = 2
             }
-            resolver := PollingHost{
+            resolver := PollingHostStruct{
                 Hostname: record.Server,
-                IPAddress: record.IPAddress,
+                IPAddress: record.IpAddress,
                 Domain: record.Domain,
                 Location: record.Location,
                 Site: record.Site,
@@ -189,17 +141,8 @@ func parseZones(records []Csv, extraDelimeter string) ([]PollingHost, error) {
     return resolvers, nil
 }
 
-func GetPollingHosts() []PollingHost {
-    configMutex.RLock()
-    defer configMutex.RUnlock()
-    copiedHosts := make([]PollingHost, len(pollingHosts))
-    copy(copiedHosts, pollingHosts)
-
-    return copiedHosts
-}
-
-func GetCSVHash() HashStruct{
-	configMutex.RLock()
-    defer configMutex.RUnlock()
-    return lastCsvHash
+func GetPollingHosts() *[]PollingHostStruct {
+    pollingHostsMutex.RLock()
+    defer pollingHostsMutex.RUnlock()
+    return &pollingHosts
 }

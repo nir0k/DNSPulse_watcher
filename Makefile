@@ -7,7 +7,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GORUN=$(GOCMD) run
 
-BINARY_NAME=HighFrequencyDNSChecker
+BINARY_NAME=DNSPulse_watcher
 
 build:
 	GOOS=linux GOARCH=amd64 CC=x86_64-linux-gnu-gcc $(GOBUILD) -o ./bin/$(BINARY_NAME)-linux-amd64 .

@@ -10,110 +10,29 @@
 - Проверка разрешенного адреса (проверяется что разрешен был адрес 1.1.1.1)
 - Непрерывный мониторинг. (подразумевает работу 24/7)
 - Возможность выбора отправляемых лейблов в конфигурации
-- Динамическое обновление конфигурации из файла
-- Динамическое обновление списка опрашиваемых серверов из csv-файла
-- Синхронизация конфигурации и списка серверов с соседними серверами (список серверов и токен авторизации настраивается в файле конфигурации)
-- Веб-интерфейс:
-	- Возможность просмотра конфигурации, списка опрашиваемых серверов, последних логов приложения и аудита, состояния синхронизации с другими серверами)
-	- Возможность правки списка опрашиваем серверов как загрузкой файла, так и построчно.
-	- Возможность изменения конфигурации через веб-интерфейс
-  - Документация для API
-- API:
-  - Hash-файлов конфигурации и списка серверов, а так же дату последненго изменения
-  - Получения файла конигурации
-  - Получение файла со списком серверов
+- Синхронизация конфигурации с центрального сервера
 - Логирование работы утилиты с выбором уровня логирования
-- Запись аудит лога
 - Ротация лога по заданным правилам
 
 ### Требования для запуска утилиты:
 **Внимание, работы утилиты тестировалась только в операционных системах MacOS и Linux**
 
 - файл конфигурации в формате yaml
-- файл со списком опрашиваемых серверов
-
 
 ### Пример конфигурационного файла:
 ```yaml
 General:
-  confCheckInterval: 1  # Переодичность проверки конфигурации (в минутах)
   location: K2              # Пасположение сервера с утилитой
   securityZone: PROD        # Зона безопасности сервера с утилитой
 
-Audit:
-  path: "audit.json"    # Путь к файлу аудита
-  minSeverity: "info"   # Минимальный уровень критичности
-  maxAge: 30            # Максимальный срок времяжизни фийла (в днях)
-  maxSize: 10           # Максимальный размер файла (в Мб)
-  maxFiles: 10          # Максимальное количество файлов
-
-WebServer:
-  listenAddress: 0.0.0.0    # Интерфейс на котором будет работать web-server
-  port: 443                 # Порт на котором будет работать web-сервер
-  sslIsEnable: true         # Включение ли выключение HTTPS (на данный момент не работает)
-  sslCertPath: "cert.pem"   # Путь к файлу сертификата
-  sslKeyPath: "key.pem"     # Путь к файлу приватного ключа (не должен быть защищен парольной фразой)
-  sesionTimeout: 600        # Время таймаута пользовательской сессии (в секундах)
-  username: "admin"         # Пользователь для входа в вебинтерфейс
-  password: "password"      # Пароль для подключения
-
-Sync:
-  isEnable: true                    # Включение синхронизации с соседями
-  token: "fvdknlvd9ergturoegkvnemc" # Тонек для синхронизации (в отличии от пользовательского токена не имеет срока действия)
-SyncMembers:                        # Список соседий с которыми надо синхронизироваться
-    - hostname: "127.0.0.1"
-      port: 443
-    - hostname: "10.10.10.10"
-      port: 8081
-
-Prometheus:                                     # Настройки Promrtheus
-  url: "http://prometheus:8428/api/v1/write"    # URL для подключения к prometheus
-  auth: false                                   # Включение/выключение авторизации
-  username: "user"                              # Пользователь Prometheus для запись данных в БД
-  password: "password"                          # Пароль Prometheus
-  metricName: "dns_resolve"                     # Наименование метрики
-  retriesCount: 2                               # Количество попыток отправить метрки
-  buferSize: 2                                  # Размер буфера метрик (сколько метрик будет собранно перед отправкой в Promrtheus)
-  labels:                                       # Включение или отключение дополнительных лейблов (отражена текущая настройка)
-        opcode: false
-        authoritative: false
-        truncated: true
-        rcode: true
-        recursionDesired: false
-        recursionAvailable: false
-        authenticatedData: false
-        checkingDisabled: false
-        pollingRate: false
-        recursion: true
-
-Resolvers:                  
-  path: "dns_servers.csv"   # Путь к файлу со списком опрашиваемых серверов
-  pullTimeout: 2            # Максимальное время ожидание ответа (в секундах)
-  delimeter: ","            # Основной разделитель в CSV-файле
-  extraDelimeter: "&"       # Дополнительный разделитель для полей server_security_zone, query_count_rps, zonename_with_recursion, query_count_with_recursion_rps
+ConfigHub:
+    host: localhost           # IP-адрес или hostname центрального сервера
+    port: 50051               # Порт для подклюяения к центральному серверу
+    segment: <SegmentName>    # Название сегмента в котором расположен Watcher
+    token: "<Token>"          # Токен авторизации
+    encryptionKey: "<Token>"  # Ключ шифрования
+    path: "data"              # Путь к директории для хранения данных конфигурации и списка опрашиваемых серверов с центрального сервера
 ```
-### Пример csv-файла со списком серверов
-```csv
-server,server_ip,service_mode,domain,prefix,location,site,server_security_zone,protocol,zonename,query_count_rps,zonename_with_recursion,query_count_with_recursion_rps
-TestServer,127.0.0.5,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&test.ru,2&2
-new_server2,1.2.3.4,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru&region.test2.ru,1&2
-TestServe3,127.0.0.99,true,REG,dnsmon,DP4,null,REGION-LAN,udp,reg.ru,2,msk.ru&region.test.ru&test.com,2&3&3
-Dublicate ,1.2.3.5,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru,1
-Dublicate ,1.2.3.5,false,newdomain.com,prefix,location,site,zone,udp,zone1,10,test.ru,1
-```
-- `server` - Имя сервера, которе будет отоброжаться в лейблах (не влияемт на опрос)
-- `server_ip` - IP-адрес сервера, по этому параметру происходит подключение к серверу
-- `service_mode` - Сервисный режим, сервера с включенным сервисным режимом не опрашиваться, раз в секунду отправляется мтерика с данными что сервер в сервисном режиме
-- `domain` - Домен
-- `prefix` - префикс к которому добавляеться случайная часть для опроса. Прафило формирования: <unixtime с наносекундами>.<suffix>.<zonename>
-- `location` - расположение DNS сервера
-- `site` - сайт DNS сервера
-- `server_security_zone` - Зона безопасности сервера
-- `protocol` - Протокол по которому будет производиться опрос (udp, tcp, udp4, tcp4, udp6, tcp6)
-- `zonename` - Зона безопасности, опрашиваемая без рекурсии, если зон несколько нужно их ввести в одну строку в качестве разделителя использовать значение из конфигурации "extraDelimeter"
-- `query_count_rps` - Частота опроса без рекурсии, если зон несколько нужно ввести значения опроса в одну строку в качестве разделителя использовать значение из конфигурации "extraDelimeter"
-- `zonename_with_recursion` - Зона безопасности, опрашиваемая с рекурсией, если зон несколько нужно их ввести в одну строку в качестве разделителя использовать значение из конфигурации "extraDelimeter"
-- `query_count_with_recursion_rps` - Частота опроса с рекурсией, если зон несколько нужно ввести значения опроса в одну строку в качестве разделителя использовать значение из конфигурации "extraDelimeter"
 
 ### Компиляция утилиты:
 ```bash
@@ -131,7 +50,7 @@ make build
 Ключи запуска:
 ```bash
 -config string
-      Path to the configuration file (default "config.yaml")
+      Path to the configuration file (default "mainConf.yaml")
 -logMaxAge int
       Maximum log file age (default 10)
 -logMaxFiles int
@@ -150,9 +69,3 @@ make build
 chmod +x HighFrequencyDNSChecker-linux-amd64
 ./HighFrequencyDNSChecker-linux-amd64
 ```
-
-### В процессе работы утилита создает следующие файлы:
--	Файл лога в формате JSON
--	Файл аудита в формате JSON
--	При ротации логи сжимаются в архив gz
- 

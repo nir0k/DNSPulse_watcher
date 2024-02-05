@@ -1,8 +1,8 @@
 package polling
 
 import (
-	"HighFrequencyDNSChecker/components/datastore"
-	"HighFrequencyDNSChecker/components/logger"
+	"DNSPulse_watcher/pkg/datastore"
+	"DNSPulse_watcher/pkg/logger"
 	"strconv"
 	"time"
 
@@ -14,7 +14,7 @@ var (
     Polling_chan chan struct{}
 )
 
-func DnsResolve(server datastore.PollingHost, timeout int) bool {
+func DnsResolve(server datastore.PollingHostStruct, timeout int32) bool {
     request_time := time.Now()
     if server.ServiceMode{
         logger.Logger.Debug("Server:", server.Hostname, ",TC: false, host:, Rcode: 0, Protocol:, r_time:", request_time, ", r_duration: 0, polling rate:", server.QueryCount)
@@ -53,7 +53,7 @@ func DnsResolve(server datastore.PollingHost, timeout int) bool {
     return true
 }
 
-func dnsPolling(server datastore.PollingHost, timeout int, stop <-chan struct{}) {
+func dnsPolling(server datastore.PollingHostStruct, timeout int32, stop <-chan struct{}) {
     if server.ServiceMode {
         server.QueryCount = 1
     }
@@ -70,7 +70,7 @@ func dnsPolling(server datastore.PollingHost, timeout int, stop <-chan struct{})
 
 
 func CreatePolling() {
-    timeout := datastore.GetConfig().Polling.PollTimeout
+    timeout := datastore.GetSegmentConfig().Polling.PollTimeout
     pollingHosts := datastore.GetPollingHosts()
     if Polling {
         close(Polling_chan)
@@ -78,7 +78,7 @@ func CreatePolling() {
     }    
     Polling_chan = make(chan struct{})
     Polling = false
-    for _, r := range pollingHosts {
+    for _, r := range *pollingHosts {
         go dnsPolling(r, timeout, Polling_chan)
     }
     Polling = true

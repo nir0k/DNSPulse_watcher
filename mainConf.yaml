@@ -1,0 +1,11 @@
+General:
+    location: K2999
+    securityZone: PROD
+
+ConfigHub:
+    host: localhost
+    port: 50051
+    segment: PROD-SRV-CS
+    token: "Gbs6pVdzxK3ADGAYOdPE4mxbO13miRo6Ks0WsymuEMKYscbsVU7cA5IwOzzsL39Y"
+    encryptionKey: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    path: "data"

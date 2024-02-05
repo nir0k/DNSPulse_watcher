@@ -1,8 +1,8 @@
 package polling
 
 import (
-	"HighFrequencyDNSChecker/components/datastore"
-	"HighFrequencyDNSChecker/components/logger"
+	"DNSPulse_watcher/pkg/datastore"
+	"DNSPulse_watcher/pkg/logger"
 	"context"
 	"encoding/base64"
 	"strconv"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/castai/promwrite"
 	"github.com/miekg/dns"
+    pb "DNSPulse_watcher/pkg/gRPC"
 )
 
 var (
@@ -18,15 +19,15 @@ var (
     Mu sync.Mutex
 )
 
-
-func basicAuth(conf datastore.PrometheusConfStruct) string {
+func basicAuth(conf *pb.PrometheusConfig) string {
+// func basicAuth(conf datastore.PrometheusConfStruct) string {
     auth := conf.Username + ":" + conf.Password
     return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-
-func collectLabels(server datastore.PollingHost, r_header dns.MsgHdr, conf datastore.PrometheusConfStruct, confG datastore.GeneralConfigStruct) []promwrite.Label {
-    promLabels := datastore.GetConfig().Prometheus.Labels
+func collectLabels(server datastore.PollingHostStruct, r_header dns.MsgHdr, conf *pb.PrometheusConfig, localConf datastore.LocalConfStruct) []promwrite.Label {
+// func collectLabels(server datastore.PollingHostStruct, r_header dns.MsgHdr, conf datastore.PrometheusConfStruct, confG datastore.GeneralConfigStruct) []promwrite.Label {
+    promLabels := datastore.GetSegmentConfig().Prometheus.Labels
     var label promwrite.Label
 
     labels := []promwrite.Label{
@@ -56,19 +57,19 @@ func collectLabels(server datastore.PollingHost, r_header dns.MsgHdr, conf datas
         },
         {
             Name: "watcher",
-            Value: confG.Hostname,
+            Value: localConf.Hostname,
         },
         {
             Name: "watcher_ip",
-            Value: confG.IPAddress,
+            Value: localConf.IPAddress,
         },
         {
             Name: "watcher_security_zone",
-            Value: confG.SecurityZone,
+            Value: localConf.SecurityZone,
         },
         {
             Name: "watcher_location",
-            Value: confG.Location,
+            Value: localConf.Location,
         },
         {
             Name: "protocol",
@@ -142,18 +143,21 @@ func collectLabels(server datastore.PollingHost, r_header dns.MsgHdr, conf datas
 }
 
 
-func BufferTimeSeries(server datastore.PollingHost, tm time.Time, value float64, response_header dns.MsgHdr) {
-    conf := datastore.GetConfig().Prometheus
-    confGeneral := datastore.GetConfig().General
+func BufferTimeSeries(server datastore.PollingHostStruct, tm time.Time, value float64, response_header dns.MsgHdr) {
+    // conf := datastore.GetSegmentConfig().Prometheus
+    
+    conf := datastore.GetSegmentConfig().Prometheus
+    // confGeneral := datastore.GetSegmentConfig().General
+    localConf := datastore.GetLocalConfig().LocalConf
     Mu.Lock()
 	defer Mu.Unlock()
-    if len(Buffer) >= conf.BufferSize {
+    if len(Buffer) >= int(conf.BufferSize) {
         go sendVM(Buffer, conf)
         Buffer = nil
         return
     }
     instance := promwrite.TimeSeries{
-        Labels: collectLabels(server, response_header, conf, confGeneral),
+        Labels: collectLabels(server, response_header, conf, localConf),
         Sample: promwrite.Sample{
             Time:  tm,
             Value: value,
@@ -163,22 +167,24 @@ func BufferTimeSeries(server datastore.PollingHost, tm time.Time, value float64,
 }
 
 
-func sendVM(items []promwrite.TimeSeries, conf datastore.PrometheusConfStruct) bool {
-    client := promwrite.NewClient(conf.URL)
+// func sendVM(items []promwrite.TimeSeries, conf datastore.PrometheusConfStruct) bool {
+func sendVM(items []promwrite.TimeSeries, conf *pb.PrometheusConfig) bool {
+
+    client := promwrite.NewClient(conf.Url)
     
     req := &promwrite.WriteRequest{
         TimeSeries: items,
     }
     logger.Logger.Debug("TimeSeries:", items)
-    for i := 0; i < conf.RetriesCount; i++ {
+    for i := 0; i < int(conf.RetriesCount); i++ {
         _, err := client.Write(context.Background(), req, promwrite.WriteHeaders(map[string]string{"Authorization": "Basic " + basicAuth(conf)}))
         if err == nil {
-            logger.Logger.Debug("Remote write to VM succesfull. URL:", conf.URL ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+            logger.Logger.Debug("Remote write to VM succesfull. URL:", conf.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
             return true
         }
-        logger.Logger.Warn("Remote write to VM failed. Retry ", i+1, " of ", conf.RetriesCount, ". URL:", conf.URL, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
+        logger.Logger.Warn("Remote write to VM failed. Retry ", i+1, " of ", conf.RetriesCount, ". URL:", conf.Url, ", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"), ", error:", err)
     }
-    logger.Logger.Error("Remote write to VM failed. URL:", conf.URL ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
+    logger.Logger.Error("Remote write to VM failed. URL:", conf.Url ,", timestamp:", time.Now().Format("2006/01/02 03:04:05.000"))
     logger.Logger.Debug("Request:", req)
     return false
 }
