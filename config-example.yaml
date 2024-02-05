@@ -1,41 +1,9 @@
 General:
-    confCheckInterval: 1
     location: K2999
     securityZone: PROD
-Audit:
-    path: audit.json
-    minSeverity: info
-    maxAge: 30
-    maxSize: 10
-    maxFiles: 11
-
-Prometheus:
-    url: http://prometheus:8428/api/v1/write
-    auth: false
-    username: user
-    password: password
-    metricName: dns_resolve
-    retriesCount: 2
-    buferSize: 2
-    labels:
-        opcode: false
-        authoritative: false
-        truncated: true
-        rcode: true
-        recursionDesired: false
-        recursionAvailable: false
-        authenticatedData: false
-        checkingDisabled: false
-        pollingRate: false
-        recursion: true
-Resolvers:
-    path: data/dns_servers.csv
-    delimeter: ','
-    extraDelimeter: '&'
-    pullTimeout: 3
 
 ConfigHub:
     host: localhost
     port: 50051
-    token: "Gbs6pVdzxK3ADGAYOdPE4mxbO13miRo6Ks0WsymuEMKYscbsVU7cA5IwOzzsL39Y"
-    encryptionKey: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    token: "TOKEN"
+    encryptionKey: "ENCRIPTIONKEY"
