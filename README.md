@@ -1,7 +1,7 @@
-# High-Frequency DNS Server Polling Utility
+# DNSPulse_watcher
 
 ## Description:
-This utility is designed for high-frequency verification of DNS server name resolutions from a pre-determined list. The results of these checks are saved to a Prometheus database using the remote write feature, ensuring access to data in real-time. This provides users with comprehensive tools for analyzing the efficiency and availability of server infrastructure, significantly enhancing their ability to effectively monitor and maintain system integrity.
+This фзздшсфешщт is designed for high-frequency verification of DNS server name resolutions from a pre-determined list. The results of these checks are saved to a Prometheus database using the remote write feature, ensuring access to data in real-time. This provides users with comprehensive tools for analyzing the efficiency and availability of server infrastructure, significantly enhancing their ability to effectively monitor and maintain system integrity.
 
 ## Key features of the utility:
 - High-frequency polling (by default, every 150 ms)
@@ -76,9 +76,3 @@ Example of Starting the Utility:
 chmod +x HighFrequencyDNSChecker-linux-amd64
 ./HighFrequencyDNSChecker-linux-amd64
 ```
-
-### During operation, the utility creates the following files:
-- Log file in JSON format
-- Audit file in JSON format
-- Logs are compressed into a gz archive upon rotation
- 
