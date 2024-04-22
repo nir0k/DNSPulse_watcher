@@ -1,9 +1,11 @@
 General:
-    location: K2999
+    location: K2
     securityZone: PROD
 
 ConfigHub:
     host: localhost
     port: 50051
+    segment: PROD-SRV-CS
     token: "TOKEN"
     encryptionKey: "ENCRIPTIONKEY"
+    path: "data"

@@ -65,7 +65,7 @@ func main() {
             } else {
                 logger.Logger.Debug("Configuration reloaded successfully")
             }
-			confState, pollingState, _ := grpcclient.FetchConfig(conf.ConfigHUB)
+			confState, pollingState, _ := grpcclient.FetchConfig(conf.ConfigHUB)			
 			if confState || pollingState {
 				polling.CreatePolling()
 			}

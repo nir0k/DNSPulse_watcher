@@ -64,6 +64,12 @@ func GetConfHash() string {
     return localConfLastHash
 }
 
+// func SetNewPollingHash(hash string) {
+//     localConfigMutex.Lock()
+//     defer localConfigMutex.Unlock()
+//     localConfLastHash
+// }
+
 func LoadLocalConfig() (bool, error) {
 	fileData, err := os.ReadFile(localConfigFile)
     if err != nil {

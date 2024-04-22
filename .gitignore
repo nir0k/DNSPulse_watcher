@@ -39,3 +39,4 @@ config.yaml
 /bin/*
 data/*.json
 mainConf.yaml
+DNSPulse_watcher

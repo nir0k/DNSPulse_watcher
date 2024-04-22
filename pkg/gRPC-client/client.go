@@ -60,13 +60,15 @@ func FetchConfig(server datastore.ConfigHubConfigStruct) (bool, bool, error) {
 	}
 	pollingHostsStatus = true
 	path = filepath.Join(server.Path, "pollingHosts.json")
-	if err := writeJSONToFile(path, r2); err != nil {
+	if err := writeJSONToFile(path, r2); err != nil { // TODO: Add check for empty answer
         logger.Logger.Errorf("Failed to write polling hosts to JSON file: %v", err)
     }
-
-	_, err = datastore.LoadPollingHosts(r2.Csvs)
-	if err != nil {
+	if r2 != nil {
+		_, err = datastore.LoadPollingHosts(r2.Csvs, r1.Polling.Hash)
+	}
+	if err != nil || r2 == nil {
 		logger.Logger.Errorf("Failed to load polling hosts: %v", err)
+		pollingHostsStatus = false
 	}
 	return segmentConfStatus, pollingHostsStatus, err
 

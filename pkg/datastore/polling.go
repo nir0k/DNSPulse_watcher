@@ -38,12 +38,16 @@ func GetCSVHash() string{
     return lastPollingHash
 }
 
-func LoadPollingHosts(data []*pb.Csv) (bool, error) {
+func LoadPollingHosts(data []*pb.Csv, newConfHash string) (bool, error) {
 
-    var hosts []PollingHostStruct
+    var (
+        hosts []PollingHostStruct
+        csvHash string
+    )
     conf := GetSegmentConfig().Polling
-
-    if GetCSVHash() == conf.Hash {
+    csvHash = GetCSVHash()
+    fmt.Printf("New hash: %s", newConfHash)
+    if newConfHash == csvHash {
         logger.Logger.Debugf("PollingHosts not changes")
         return false, nil
     }
@@ -72,7 +76,9 @@ func LoadPollingHosts(data []*pb.Csv) (bool, error) {
 	pollingHostsMutex.Lock()
     defer pollingHostsMutex.Unlock()
 	pollingHosts = hosts
-    lastPollingHash = conf.Hash
+    lastPollingHash = newConfHash
+    SetSegmentPollingHash(newConfHash)
+    
     return true, nil
 }
 

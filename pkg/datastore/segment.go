@@ -18,6 +18,12 @@ func GetSegmentConfig() *pb.SegmentConfStruct {
 	return segmentConfig
 }
 
+func SetSegmentPollingHash(hash string) {
+	segmentConfigMutex.Lock()
+    defer segmentConfigMutex.Unlock()
+	segmentConfig.Polling.Hash = hash
+}
+
 func SetSegmentConfig(newConf *pb.SegmentConfStruct) {
 	segmentConfigMutex.Lock()
     defer segmentConfigMutex.Unlock()
